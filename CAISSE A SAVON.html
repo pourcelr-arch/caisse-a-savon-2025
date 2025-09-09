@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de bord caisse à savon gestion des bénévoles et du matériel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        .text-red-500 {
+            color: #ef4444;
+        }
+        
+        /* Règle CSS pour permettre au tableau de s'adapter au contenu */
+        #benevoles-table {
+            table-layout: auto;
+            width: max-content;
+            min-width: 100%;
+        }
+        
+        /* Assure que le texte ne se coupe pas et reste sur une seule ligne */
+        th, td {
+            white-space: nowrap;
+            padding: 8px 12px;
+        }
+        
+        /* Styles pour les en-têtes de colonnes masquables */
+        .hideable-column-header {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        
+        input, select {
+            background-color: transparent;
+            border: none;
+            outline: none;
+        }
+        
+        .red-field {
+            color: #ef4444;
+        }
+        .column-hidden {
+            display: none !important;
+        }
+
+        /* Modal styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .modal-close-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        
+        #save-message {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        #save-message.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-2xl p-6">
+        <h1 class="text-3xl font-bold text-center text-gray-900 mb-2">Tableau de bord caisse à savon - Gestion des bénévoles et du matériel</h1>
+        <p class="text-center text-gray-400 text-sm mb-4">Créé par Romain Pourcel</p>
+        <p class="text-center text-gray-600 mb-8">
+            Gérez facilement les informations et le matériel de chaque bénévole. Les champs en rouge indiquent des informations à vérifier.
+        </p>
+
+        <!-- Tableau de bord compact de suivi du matériel -->
+        <div class="mb-8 p-4 bg-yellow-50 rounded-xl shadow-inner border-l-4 border-yellow-400 flex flex-wrap justify-between items-center text-sm md:text-base">
+            <!-- Radios -->
+            <div class="flex flex-col items-center">
+                <div class="flex items-center space-x-2">
+                    <span class="font-medium text-gray-700">Radios:</span>
+                    <span class="font-bold text-blue-600" id="radios-distribuees">0</span>
+                    <span class="text-gray-500">D</span>
+                    <span class="font-bold text-green-600" id="radios-restituees">0</span>
+                    <span class="text-gray-500">R</span>
+                </div>
+                <div class="flex items-center space-x-2 mt-1">
+                    <span class="font-medium text-red-500">Manquantes:</span>
+                    <span class="font-bold text-lg text-red-500" id="radios-manquantes">0</span>
+                </div>
+            </div>
+
+            <!-- Espace -->
+            <div class="flex-grow"></div>
+
+            <!-- Sifflets -->
+            <div class="flex flex-col items-center">
+                <div class="flex items-center space-x-2">
+                    <span class="font-medium text-gray-700">Sifflets:</span>
+                    <span class="font-bold text-blue-600" id="sifflets-distribues">0</span>
+                    <span class="text-gray-500">D</span>
+                    <span class="font-bold text-green-600" id="sifflets-restitues">0</span>
+                    <span class="text-gray-500">R</span>
+                </div>
+                <div class="flex items-center space-x-2 mt-1">
+                    <span class="font-medium text-red-500">Manquants:</span>
+                    <span class="font-bold text-lg text-red-500" id="sifflets-manquants">0</span>
+                </div>
+            </div>
+
+            <!-- Espace -->
+            <div class="flex-grow"></div>
+
+            <!-- Total -->
+            <div class="flex items-center space-x-2 mt-4 md:mt-0">
+                <span class="font-medium text-gray-700">Appareils manquants:</span>
+                <span class="font-bold text-2xl text-red-500" id="appareils-manquants">0</span>
+            </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 space-y-4 sm:space-y-0">
+            <div class="flex space-x-2">
+                <button id="add-benevole-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">
+                    + Ajouter un bénévole
+                </button>
+                <button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">
+                    Sauvegarder les données
+                </button>
+            </div>
+            <p id="save-message" class="text-green-600 font-bold opacity-0 transition-opacity duration-500 ease-in-out">Données sauvegardées !</p>
+            <div class="flex items-center space-x-2">
+                 <input type="text" id="filter-input" placeholder="Filtrer par nom..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <input type="checkbox" id="toggleTel" class="form-checkbox h-4 w-4 text-blue-600 rounded">
+                <label for="toggleTel" class="text-sm font-medium text-gray-700 select-none">Masquer les numéros de téléphone</label>
+            </div>
+        </div>
+
+        <div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner">
+            <table class="divide-y divide-gray-200" id="benevoles-table">
+                <thead class="bg-gray-200 sticky top-0 z-10">
+                    <tr id="table-headers">
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider rounded-tl-xl hideable-column-header" data-column="name">Nom & Prénom</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hideable-column-header" data-column="tel">Téléphone</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hideable-column-header" data-column="jours">Jours de présence</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hideable-column-header" data-column="lieu">
+                            Lieu d'affectation 📍
+                        </th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hideable-column-header" data-column="fonction">
+                            Fonction 💼
+                        </th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hideable-column-header" data-column="materiel">Matériel (Distribué / Restitué)</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider rounded-tr-xl" data-column="zello">Zello 📻</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200" id="table-body">
+                    <!-- Les lignes de données seront générées ici par JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <p class="text-center text-gray-400 text-xs mt-8">Créé par Romain Pourcel</p>
+    </div>
+
+    <!-- Modal pour ajouter un bénévole -->
+    <div id="add-benevole-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ajouter un nouveau bénévole</h2>
+                <button class="modal-close-button" id="close-modal-btn">&times;</button>
+            </div>
+            <form id="add-benevole-form" class="space-y-4">
+                <div>
+                    <label for="nom" class="block text-sm font-medium text-gray-700">Nom</label>
+                    <input type="text" id="nom" name="nom" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="prenom" class="block text-sm font-medium text-gray-700">Prénom</label>
+                    <input type="text" id="prenom" name="prenom" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="tel" class="block text-sm font-medium text-gray-700">Numéro de téléphone</label>
+                    <input type="tel" id="tel" name="tel" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div class="flex justify-end pt-4">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">
+                        Ajouter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initialisation des données
+        let data = [];
+        const localStorageKey = 'benevolesData';
+        let filteredData = [];
+
+        // Fonction pour charger les données depuis le stockage local
+        function loadData() {
+            const savedData = localStorage.getItem(localStorageKey);
+            if (savedData) {
+                try {
+                    data = JSON.parse(savedData);
+                } catch (e) {
+                    console.error("Erreur lors du chargement des données, chargement des données par défaut.", e);
+                    initializeDefaultData();
+                }
+            } else {
+                initializeDefaultData();
+            }
+            filteredData = [...data];
+        }
+
+        // Données initiales si le stockage local est vide
+        function initializeDefaultData() {
+            data = [
+                { nom: "BENGLOAN", prenom: "Olivier", tel: "07 86 42 85 60", jours: "Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "BICHERAY", prenom: "Stephane", tel: "06 26 59 36 93", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "BOURASSEAU", prenom: "Patrick", tel: "06 50 44 80 85", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "CARGOUER", prenom: "J M", tel: "Non renseigné", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "CARRO", prenom: "Charlotte", tel: "06 65 04 24 90", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "CORMIER", prenom: "Sylvie", tel: "06 77 13 07 71", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "COCHARD", prenom: "Catherine", tel: "06 40 99 35 71", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "CARRE", prenom: "Emile", tel: "07 81 99 85 75", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "DUBOIS", prenom: "Claude Francois", tel: "07 81 99 85 75", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "DUMONT", prenom: "Richard", tel: "06 14 78 51 40", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "DI GUGLIELMOT", prenom: "Martine", tel: "06 77 93 07 92", jours: "Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "DI GUGLIELMOT", prenom: "Alain", tel: "06 68 77 77 04", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "DURONT", prenom: "Daniel", tel: "06 09 13 12 14", jours: "Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "FERRAND", prenom: "Herve", tel: "06 32 28 07 81", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "FIEVET", prenom: "Alexis", tel: "06 85 16 35 63", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "EZANO", prenom: "Lucie", tel: "Non renseigné", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "GORNIEL", prenom: "Robert", tel: "06 32 75 73 02", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "GUILLOT", prenom: "Bernard", tel: "06 60 20 43 90", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "HELLO", prenom: "Patrick", tel: "06 11 30 31 34", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "HAUTOT", prenom: "Christophe", tel: "06 61 12 49 74", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "JEAN", prenom: "Alain", tel: "06 80 20 36 54", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "JACOBS", prenom: "Maarten", tel: "06 71 78 49 40", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "JEGOUZO", prenom: "Franck", tel: "06 63 47 62 62", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE DOZE", prenom: "Morgan", tel: "06 03 23 83 98", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE CHEVILLER", prenom: "Jean francois", tel: "06 78 11 27 34", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE SAGER", prenom: "Michele", tel: "06 82 46 14 71", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE GAL", prenom: "Philipe", tel: "07 69 73 97 04", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE GAL", prenom: "Yoan", tel: "06 25 52 73 33", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE DAIN", prenom: "Henri", tel: "06 31 76 64 37", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LARTIGUE", prenom: "Veronique", tel: "06 29 95 11 82", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE BRAS", prenom: "Franck", tel: "06 42 55 47 09", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE PALLEC", prenom: "Marc", tel: "06 86 01 79 50", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE PALLEC", prenom: "Danielle", tel: "06 99 66 56 92", jours: "Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE FLOCH", prenom: "Anais", tel: "Non renseigné", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE ROUX", prenom: "Sandrine", tel: "06 07 24 80 11", jours: "Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE HELLAYE", prenom: "Marcel", tel: "06 48 47 57 87", jours: "Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE BOUVIER", prenom: "Gael", tel: "06 87 82 39 01", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "MAGNONE", prenom: "Serge", tel: "07 49 08 71 47", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "POURCEL", prenom: "Romain", tel: "06 13 25 56 51", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "PIGNARD", prenom: "Regis", tel: "07 82 64 73 73", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "PIGNARD", prenom: "Dominique", tel: "Non renseigné", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "PIGNARD", prenom: "Laurence", tel: "Non renseigné", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "RAUD", prenom: "Christian", tel: "06 11 85 59 98", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "RAUD", prenom: "Chantale", tel: "Non renseigné", jours: "Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "ROUSSEAU", prenom: "Olivier", tel: "06 73 87 44 37", jours: "Samedi/Dimanche", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "VELLY", prenom: "Patrick", tel: "Non renseigné", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LE QUELLENEC", prenom: "Claude", tel: "07 69 51 19 06", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+                { nom: "LO", prenom: "André", tel: "Non renseigné", jours: "Non renseigné", fonction: "À définir", lieu: "À définir", materiel: { "Radio": { distribue: false, restitue: false }, "Sifflet": { distribue: false, restitue: false }, "Gilet": { distribue: false, restitue: false } }, zello: false },
+            ];
+        }
+
+        const tableBody = document.getElementById('table-body');
+        const tableHeaders = document.getElementById('table-headers');
+        const toggleTelCheckbox = document.getElementById('toggleTel');
+        const addBenevoleBtn = document.getElementById('add-benevole-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const addBenevoleModal = document.getElementById('add-benevole-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const addBenevoleForm = document.getElementById('add-benevole-form');
+        const saveMessage = document.getElementById('save-message');
+        const filterInput = document.getElementById('filter-input');
+        
+        // Mappage des noms de colonnes pour les icônes
+        const functionIcons = {
+            "Contrôle Technique 🛠️": "🔍",
+            "Responsable Expo voiture 🚗": "🚗"
+        };
+
+        const joursOptions = ["Samedi", "Dimanche", "Samedi/Dimanche", "Non renseigné"];
+        const fonctionOptions = ["Organisateur 🧑‍💼", "Accueil / Inscriptions 📝", "Contrôle Technique 🛠️", "Sécurité Piste 🚧", "Commissaire de Course 🚦", "Chronométrage ⏱️", "Logistique 🚚", "Relations Compétiteurs 👋", "Espace Convivialité -Bénévoles 🧑‍🤝‍🧑", "Remontée des Caisses 🚜", "Speaker 📢", "Photographe 📸", "Responsable Radio 📻", "Pôle de Départ 🏁", "Pôle d'Arrivée ✅", "Podium 🏆", "Secrétariat 📋", "Responsable Expo voiture 🚗", "Soutien opérationnel", "À définir"];
+        const lieuOptions = ["Mobile sur l'ensemble du parcours", "Parc Concurrents", "Piste de Course", "Grille de Départ", "Contrôle Technique", "Espace Bénévoles", "Rue de l'étang", "Rue des Ajoncs", "Rue Maréchal Leclerc", "Rue Général De Gaulle", "Rue Général Déborde", "Rue des Écoles", "Rue Madame Gadot", "Rue Saint-Joseph", "Rue François Le Bail", "Ligne d'arrivée", "Garage Motrio", "À définir"];
+
+        // Fonction pour formater le numéro de téléphone
+        function formatTel(tel) {
+            let cleanedTel = tel ? tel.replace(/\s/g, '') : '';
+            if (cleanedTel.length === 10 && !isNaN(cleanedTel)) {
+                return cleanedTel.replace(/(\d{2})(?=\d)/g, '$1 ');
+            }
+            return tel;
+        }
+
+        // Fonction pour créer un élément <select>
+        function createSelect(id, options, selectedValue, className = "", dataIndex) {
+            const select = document.createElement('select');
+            select.id = id;
+            select.className = `py-1 px-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm md:text-base w-full ${className}`;
+            
+            options.forEach(optionText => {
+                const option = document.createElement('option');
+                option.value = optionText;
+                let displayValue = optionText;
+                if (functionIcons[optionText]) {
+                    displayValue = `${optionText}`;
+                }
+                option.textContent = displayValue;
+                if (optionText === selectedValue) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            
+            select.addEventListener('change', (e) => {
+                const person = data[dataIndex];
+                const type = id.split('-')[0];
+                person[type] = e.target.value;
+                if (e.target.value.includes('Non renseigné') || e.target.value.includes('À définir')) {
+                    e.target.classList.add('red-field');
+                } else {
+                    e.target.classList.remove('red-field');
+                }
+                saveData(); // Sauvegarde automatique
+            });
+            
+            return select;
+        }
+
+        // Fonction pour mettre à jour le résumé du matériel
+        function updateMaterialSummary() {
+            let radiosDistributed = 0;
+            let radiosRestituted = 0;
+            let siffletsDistributed = 0;
+            let siffletsRestituted = 0;
+
+            data.forEach(person => {
+                if (person.materiel.Radio.distribue) radiosDistributed++;
+                if (person.materiel.Radio.restitue) radiosRestituted++;
+                if (person.materiel.Sifflet.distribue) siffletsDistributed++;
+                if (person.materiel.Sifflet.restitue) siffletsRestituted++;
+            });
+
+            document.getElementById('radios-distribuees').textContent = radiosDistributed;
+            document.getElementById('radios-restituees').textContent = radiosRestituted;
+            document.getElementById('sifflets-distribues').textContent = siffletsDistributed;
+            document.getElementById('sifflets-restitues').textContent = siffletsRestituted;
+            
+            const radiosMissing = radiosDistributed - radiosRestituted;
+            const siffletsMissing = siffletsDistributed - siffletsRestituted;
+
+            document.getElementById('radios-manquantes').textContent = radiosMissing;
+            document.getElementById('sifflets-manquants').textContent = siffletsMissing;
+
+            const totalMissing = radiosMissing + siffletsMissing;
+            document.getElementById('appareils-manquants').textContent = totalMissing;
+        }
+
+        // Fonction pour générer le tableau
+        function renderTable(dataToRender) {
+            tableBody.innerHTML = '';
+            dataToRender.forEach((person, index) => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors duration-200';
+                
+                const isNomPrenomRed = person.nom.includes('?') || person.prenom.includes('À définir') || person.nom.toLowerCase() === "nom" || person.prenom.toLowerCase() === "prénom" || person.nom === "" || person.prenom === "";
+                const isTelRed = person.tel.includes('Non renseigné') || person.tel.toLowerCase() === "numéro de téléphone" || person.tel === "";
+
+                row.innerHTML = `
+                    <td class="px-4 py-3 text-sm text-gray-700" data-column="name">
+                        <input type="text" value="${person.nom} ${person.prenom}" class="w-full bg-transparent ${isNomPrenomRed ? 'red-field' : ''}" data-index="${index}" data-field="name">
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700" data-column="tel">
+                        <input type="text" value="${formatTel(person.tel)}" class="w-full bg-transparent ${isTelRed ? 'red-field' : ''}" data-index="${index}" data-field="tel">
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700" data-column="jours"></td>
+                    <td class="px-4 py-3 text-sm text-gray-700" data-column="lieu"></td>
+                    <td class="px-4 py-3 text-sm text-gray-700" data-column="fonction"></td>
+                    <td class="px-4 py-3 text-sm text-gray-700" data-column="materiel"></td>
+                    <td class="px-4 py-3 text-sm text-center" data-column="zello">
+                        <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" data-action="zello" data-index="${index}" ${person.zello ? 'checked' : ''}>
+                    </td>
+                `;
+
+                const nameInput = row.querySelector(`input[data-field="name"]`);
+                const telInput = row.querySelector(`input[data-field="tel"]`);
+                const zelloCheckbox = row.querySelector(`input[data-action="zello"]`);
+
+                // Gestion des événements de mise à jour des champs
+                nameInput.addEventListener('change', (e) => {
+                    const [nom, prenom] = e.target.value.split(" ");
+                    data[index].nom = nom.toUpperCase();
+                    data[index].prenom = prenom || "";
+                    if (data[index].nom.includes('?') || data[index].prenom.includes('À définir') || data[index].nom.toLowerCase() === "nom" || data[index].prenom.toLowerCase() === "prénom" || data[index].nom === "" || data[index].prenom === "") {
+                        e.target.classList.add('red-field');
+                    } else {
+                        e.target.classList.remove('red-field');
+                    }
+                    saveData();
+                });
+
+                telInput.addEventListener('change', (e) => {
+                    data[index].tel = e.target.value;
+                    if (data[index].tel.includes('Non renseigné') || data[index].tel.toLowerCase() === "numéro de téléphone" || data[index].tel === "") {
+                        e.target.classList.add('red-field');
+                    } else {
+                        e.target.classList.remove('red-field');
+                    }
+                    saveData();
+                });
+                
+                zelloCheckbox.addEventListener('change', (e) => {
+                    data[index].zello = e.target.checked;
+                    saveData();
+                });
+
+                const joursCell = row.children[2];
+                const lieuCell = row.children[3];
+                const fonctionCell = row.children[4];
+                const materielCell = row.children[5];
+
+                const isJoursRed = person.jours.includes('Non renseigné');
+                const joursSelect = createSelect(`jours-${index}`, joursOptions, person.jours, isJoursRed ? 'red-field' : '', index);
+                joursCell.appendChild(joursSelect);
+
+                const isLieuRed = person.lieu.includes('À définir');
+                const lieuSelect = createSelect(`lieu-${index}`, lieuOptions, person.lieu, isLieuRed ? 'red-field' : '', index);
+                lieuCell.appendChild(lieuSelect);
+
+                const isFonctionRed = person.fonction.includes('À définir');
+                const fonctionSelect = createSelect(`fonction-${index}`, fonctionOptions, person.fonction, isFonctionRed ? 'red-field' : '', index);
+                fonctionCell.appendChild(fonctionSelect);
+
+                const materielDiv = document.createElement('div');
+                materielDiv.className = "flex flex-col space-y-2";
+                
+                for (const key in person.materiel) {
+                    const item = person.materiel[key];
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = "flex items-center space-x-2 text-sm";
+                    itemDiv.innerHTML = `
+                        <span class="min-w-[60px] font-medium text-gray-800">${key}:</span>
+                        <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" data-action="distribue" data-index="${index}" data-key="${key}" ${item.distribue ? 'checked' : ''}>
+                        <label for="dist-${index}-${key}" class="text-xs">D</label>
+                        <input type="checkbox" class="form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" data-action="restitue" data-index="${index}" data-key="${key}" ${item.restitue ? 'checked' : ''}>
+                        <label for="rest-${index}-${key}" class="text-xs">R</label>
+                    `;
+
+                    const distribueCheckbox = itemDiv.querySelector(`input[data-action="distribue"][data-index="${index}"][data-key="${key}"]`);
+                    const restitueCheckbox = itemDiv.querySelector(`input[data-action="restitue"][data-index="${index}"][data-key="${key}"]`);
+
+                    if (distribueCheckbox) {
+                        distribueCheckbox.addEventListener('change', (e) => {
+                            data[index].materiel[key].distribue = e.target.checked;
+                            updateMaterialSummary();
+                            saveData();
+                        });
+                    }
+
+                    if (restitueCheckbox) {
+                        restitueCheckbox.addEventListener('change', (e) => {
+                            data[index].materiel[key].restitue = e.target.checked;
+                            updateMaterialSummary();
+                            saveData();
+                        });
+                    }
+
+                    materielDiv.appendChild(itemDiv);
+                }
+                
+                materielCell.appendChild(materielDiv);
+                tableBody.appendChild(row);
+            });
+            updateMaterialSummary();
+        }
+
+        // Fonction pour filtrer les données
+        function filterData() {
+            const filterValue = filterInput.value.toLowerCase();
+            if (filterValue === '') {
+                filteredData = [...data];
+            } else {
+                filteredData = data.filter(person => 
+                    person.nom.toLowerCase().includes(filterValue) || 
+                    person.prenom.toLowerCase().includes(filterValue)
+                );
+            }
+            renderTable(filteredData);
+        }
+
+        // Fonction pour sauvegarder les données
+        function saveData() {
+            localStorage.setItem(localStorageKey, JSON.stringify(data));
+            saveMessage.classList.add('show');
+            setTimeout(() => {
+                saveMessage.classList.remove('show');
+            }, 3000);
+        }
+
+        // Événements
+        saveBtn.addEventListener('click', saveData);
+
+        addBenevoleBtn.addEventListener('click', () => {
+            addBenevoleModal.style.display = 'flex';
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            addBenevoleModal.style.display = 'none';
+        });
+
+        addBenevoleForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(addBenevoleForm);
+            const newBenevole = {
+                nom: formData.get('nom').toUpperCase() || "Nom",
+                prenom: formData.get('prenom') || "Prénom",
+                tel: formData.get('tel') || "Non renseigné",
+                jours: "Non renseigné",
+                fonction: "Organisateur 🧑‍💼",
+                lieu: "Mobile sur l'ensemble du parcours",
+                materiel: {
+                    "Radio": { distribue: false, restitue: false },
+                    "Sifflet": { distribue: false, restitue: false },
+                    "Gilet": { distribue: false, restitue: false }
+                },
+                zello: false
+            };
+            data.push(newBenevole);
+            filterData(); // Re-filtre après l'ajout
+            saveData(); // Sauvegarde les nouvelles données
+            addBenevoleModal.style.display = 'none';
+            addBenevoleForm.reset();
+        });
+        
+        // Événement de filtrage en temps réel
+        filterInput.addEventListener('input', filterData);
+        
+        // Gérer le masquage des colonnes
+        tableHeaders.addEventListener('click', (e) => {
+            const header = e.target.closest('.hideable-column-header');
+            if (!header) return;
+
+            const column = header.dataset.column;
+            const isHidden = header.classList.toggle('hidden-column');
+            
+            // Masquer/afficher la colonne dans l'en-tête
+            header.style.display = isHidden ? 'none' : '';
+
+            // Masquer/afficher les cellules de données
+            const cells = document.querySelectorAll(`[data-column="${column}"]`);
+            cells.forEach(cell => {
+                cell.style.display = isHidden ? 'none' : '';
+            });
+        });
+
+        // Gérer le masquage de la colonne "Téléphone" via la case à cocher
+        toggleTelCheckbox.addEventListener('change', (e) => {
+            const telHeader = document.querySelector('[data-column="tel"]');
+            const telCells = document.querySelectorAll('td[data-column="tel"]');
+
+            if (e.target.checked) {
+                telHeader.classList.add('column-hidden');
+                telCells.forEach(cell => cell.classList.add('column-hidden'));
+            } else {
+                telHeader.classList.remove('column-hidden');
+                telCells.forEach(cell => cell.classList.remove('column-hidden'));
+            }
+        });
+        
+        // Lancement initial de l'application
+        loadData();
+        renderTable(data);
+    </script>
+
+</body>
+</html>
