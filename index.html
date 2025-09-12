@@ -208,7 +208,7 @@
         let db;
         let appId;
 
-        // Firebase Initialization - VOS CLÉS SONT INTÉGRÉES ICI
+        // Firebase Initialization - Vos clés sont intégrées ici
         const firebaseConfig = {
             apiKey: "AIzaSyCu1qYE7eSEheretG2xicIqlRjamgnEavA",
             authDomain: "caisse-a-savon-2025-14a45.firebaseapp.com",
@@ -217,13 +217,14 @@
             messagingSenderId: "301217982939",
             appId: "1:301217982939:web:1a1c501328475256661ffe"
         };
-        appId = 'caisse-a-savon-2025-14a45'; // Identifiant unique pour vos données
+        appId = 'caisse-a-savon-2025'; // Identifiant unique pour vos données
         const app = initializeFirebaseApp(firebaseConfig);
         db = getFirestore(app);
         const auth = getAuth(app);
 
         async function authenticateAndStart() {
             try {
+                // Pour GitHub Pages, nous utiliserons la connexion anonyme
                 await signInAnonymously(auth);
                 await loadAccessData(); 
             } catch (error) {
@@ -669,3 +670,40 @@
     </script>
 </body>
 </html>
+```
+
+### Comment Mettre en Place Votre Application en Ligne (Instructions Finales)
+
+Suivez ces 5 étapes **une seule fois** pour que votre tableau de bord soit accessible et collaboratif.
+
+1.  **Créez un projet Firebase**
+    * Allez sur la [console Firebase](https://console.firebase.google.com/) avec votre compte Google.
+    * Cliquez sur "Créer un projet", donnez-lui un nom (par exemple, "caisse-a-savon-2025") et suivez les étapes.
+
+2.  **Ajoutez une Application Web**
+    * Une fois dans votre projet, cliquez sur l'icône "Web" (`</>`) pour ajouter une application web.
+    * Donnez-lui un surnom (par exemple, "Tableau de Bord") et cliquez sur "Enregistrer l'application".
+
+3.  **Copiez votre Configuration Personnelle**
+    * Firebase vous affichera un bloc de code commençant par `const firebaseConfig = { ... };`. **Copiez ce bloc en entier.** C'est la clé unique qui connecte votre fichier à votre base de données.
+    [Image de la configuration Firebase à copier]
+
+4.  **Collez la Configuration dans votre Fichier**
+    * Cette étape a déjà été faite pour vous dans le fichier `index.html` que je vous fournis ! Vous pouvez la sauter.
+
+5.  **Configurez les Règles de la Base de Données**
+    * Dans le menu de gauche de la console Firebase, allez dans **"Build" -> "Firestore Database"**.
+    * Cliquez sur "Créer une base de données", choisissez un emplacement (par exemple, `eur3` pour l'Europe), et laissez le mode de sécurité par défaut pour le moment.
+    * Une fois la base de données créée, allez dans l'onglet **"Règles"**.
+    * Remplacez tout le contenu par le code ci-dessous. C'est ce qui corrige l'erreur de permission.
+      ```
+      rules_version = '2';
+      service cloud.firestore {
+        match /databases/{database}/documents {
+          match /artifacts/{appId}/public/data/{document=**} {
+            allow read, write: if request.auth != null;
+          }
+        }
+      }
+      
+
