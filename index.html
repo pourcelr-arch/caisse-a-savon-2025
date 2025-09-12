@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de bord caisse à savon gestion des bénévoles et du matériel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        .text-red-500 {
+            color: #ef4444;
+        }
+        #benevoles-table, #concurrents-table, #concurrents-admin-table {
+            table-layout: auto;
+            width: max-content;
+            min-width: 100%;
+        }
+        th, td {
+            white-space: nowrap;
+            padding: 8px 12px;
+        }
+        input, select {
+            background-color: transparent;
+            border: none;
+            outline: none;
+        }
+        input:disabled, select:disabled {
+            color: #6b7280;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: transparent;
+        }
+        /* Styles pour la modale et l'écran de connexion */
+        .modal, #login-screen, #starting-grid-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex; /* Changé pour flex par défaut */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content, .login-content, .starting-grid-content {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 800px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .modal-close-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        #save-message, #save-concurrents-message {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        #save-message.show, #save-concurrents-message.show {
+            opacity: 1;
+        }
+        /* Styles pour les onglets */
+        .tab-button.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        #chrono-display {
+            font-family: 'monospace';
+            letter-spacing: 2px;
+        }
+        /* Style pour les boutons désactivés */
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        /* Style for control select */
+        select.controle-conforme { background-color: #dcfce7; color: #166534; }
+        select.controle-nonconforme { background-color: #fee2e2; color: #991b1b; }
+        select.controle-àvérifier { background-color: #fee2e2; color: #b91c1c; font-weight: bold; }
+        input.paiement-input { border: 1px solid #d1d5db; border-radius: 0.375rem; padding: 0.25rem 0.5rem; width: 60px; }
+        input:disabled.paiement-input { background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="p-6">
+
+    <!-- ÉCRAN DE CONNEXION -->
+    <div id="login-screen">
+        <div class="login-content text-center max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Accès au tableau de bord</h2>
+            <p class="text-gray-600 mb-6">Veuillez vous identifier pour continuer.</p>
+            <form id="login-form" class="space-y-4">
+                <div><input type="text" id="login-nom" placeholder="Votre Nom" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></div>
+                <div><input type="text" id="login-prenom" placeholder="Votre Prénom" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></div>
+                <div><input type="tel" id="login-tel" placeholder="Votre Numéro de téléphone" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></div>
+                <p id="login-error" class="text-red-500 text-sm hidden">Informations incorrectes. Veuillez réessayer.</p>
+                <div class="flex justify-center pt-4"><button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Se connecter</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ÉCRAN GRILLE DE DÉPART -->
+    <div id="starting-grid-screen" style="display: none;">
+        <div class="starting-grid-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="grid-title" class="text-2xl font-bold text-gray-800">Grille de Départ</h2>
+                <button id="close-grid-btn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div class="overflow-y-auto max-h-[80vh]">
+                <table class="min-w-full divide-y divide-gray-200" id="grid-table">
+                    <thead class="bg-gray-200 sticky top-0">
+                        <!-- Headers de la grille générés par JS -->
+                    </thead>
+                    <tbody id="grid-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPLICATION PRINCIPALE -->
+    <div id="main-app" class="max-w-7xl mx-auto" style="display: none;">
+        <div class="bg-white shadow-xl rounded-2xl p-6 mb-4">
+             <div class="flex justify-between items-center mb-2">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Tableau de bord - Caisse à Savon</h1>
+                    <p class="text-gray-400 text-xs sm:text-sm">Connecté en tant que: <span id="user-info" class="font-semibold"></span></p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="logout-btn" class="text-sm bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200">Déconnexion</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-4 border-b border-gray-200">
+            <nav class="flex space-x-4" aria-label="Tabs">
+                <button id="tab-dashboard" class="tab-button active py-4 px-1 border-b-2 font-medium text-sm">Bénévoles & Matériel</button>
+                <button id="tab-concurrents" class="tab-button py-4 px-1 border-b-2 font-medium text-sm">Concurrents</button>
+                <button id="tab-race" class="tab-button py-4 px-1 border-b-2 font-medium text-sm">Gestion Course</button>
+                <button id="tab-access" class="tab-button py-4 px-1 border-b-2 font-medium text-sm" style="display: none;">Gestion Accès</button>
+            </nav>
+        </div>
+
+        <div id="content-dashboard" class="tab-content">
+             <!-- Le contenu de l'onglet Bénévoles sera injecté ici par JS -->
+        </div>
+
+        <div id="content-concurrents" class="tab-content" style="display: none;">
+             <!-- Le contenu de l'onglet Concurrents sera injecté ici par JS -->
+        </div>
+        
+        <div id="content-race" class="tab-content" style="display: none;">
+             <!-- Le contenu de l'onglet Course sera injecté ici par JS -->
+        </div>
+
+        <div id="content-access" class="tab-content" style="display: none;">
+             <!-- Le contenu de l'onglet Gestion Accès sera injecté ici par JS -->
+        </div>
+        
+        <p class="text-center text-gray-400 text-xs mt-8">Créé par Romain Pourcel</p>
+    </div>
+
+    <!-- Modal pour ajouter un bénévole -->
+    <div id="add-benevole-modal" class="modal" style="display:none">
+        <!-- Le contenu de la modale sera injecté ici par JS -->
+    </div>
+    
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, getDocs, addDoc, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        
+        // SECTION 1: AUTHENTIFICATION
+        const loginScreen = document.getElementById('login-screen');
+        const mainApp = document.getElementById('main-app');
+        const loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userInfo = document.getElementById('user-info');
+        
+        let currentUser = null;
+        let utilisateursAutorises = [];
+        let isSuperAdmin = false;
+        let db;
+        let appId;
+
+        // Firebase Initialization
+        <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCu1qYE7eSEheretG2xicIqlRjamgnEavA",
+    authDomain: "caisse-a-savon-2025-14a45.firebaseapp.com",
+    projectId: "caisse-a-savon-2025-14a45",
+    storageBucket: "caisse-a-savon-2025-14a45.firebasestorage.app",
+    messagingSenderId: "301217982939",
+    appId: "1:301217982939:web:1a1c501328475256661ffe"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
+        appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        const auth = getAuth(app);
+
+        async function authenticateAndStart() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                await loadAccessData(); 
+            } catch (error) {
+                console.error("Erreur d'authentification Firebase:", error);
+                alert("Erreur de connexion à la base de données. Vérifiez votre configuration Firebase et vos règles de sécurité.");
+            }
+        }
+
+        function loadAccessData() {
+            return new Promise((resolve, reject) => {
+                const usersCollection = collection(db, `artifacts/${appId}/public/data/users`);
+                const unsubscribe = onSnapshot(usersCollection, 
+                    (snapshot) => {
+                        utilisateursAutorises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        resolve();
+                    }, 
+                    (error) => {
+                        console.error("Erreur de lecture (Firestore):", error);
+                        if(error.code === 'permission-denied') {
+                            alert("Erreur de permission. Assurez-vous que les règles de sécurité de votre base de données Firestore sont correctement configurées pour autoriser la lecture et l'écriture.");
+                        } else {
+                            alert("Une erreur de base de données est survenue.");
+                        }
+                        reject(error);
+                    }
+                );
+            });
+        }
+        
+        function removeAccents(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+
+        loginForm.addEventListener('submit', (e) => { 
+            e.preventDefault(); 
+            const nomInput = document.getElementById('login-nom').value.trim().toUpperCase();
+            const prenomInput = document.getElementById('login-prenom').value.trim();
+            const tel = document.getElementById('login-tel').value.replace(/\s/g, '');
+
+            const normalizedNomInput = removeAccents(nomInput);
+            const normalizedPrenomInput = removeAccents(prenomInput.toLowerCase());
+
+            const foundUser = utilisateursAutorises.find(user => {
+                const normalizedUserNom = removeAccents(user.nom.toUpperCase());
+                const normalizedUserPrenom = removeAccents(user.prenom.toLowerCase());
+                return normalizedUserNom === normalizedNomInput &&
+                       normalizedUserPrenom === normalizedPrenomInput &&
+                       user.tel.replace(/\s/g, '') === tel;
+            });
+
+            if (foundUser) { 
+                currentUser = foundUser; 
+                isSuperAdmin = currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651";
+                loginScreen.style.display = 'none'; 
+                mainApp.style.display = 'block'; 
+                userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`; 
+                startAppLogic(); 
+            } else { 
+                loginError.classList.remove('hidden'); 
+            } 
+        });
+        logoutBtn.addEventListener('click', () => { location.reload(); });
+
+        // SECTION 2: LOGIQUE DE L'APPLICATION
+        function startAppLogic() {
+            // -- Inject HTML content for tabs --
+            document.getElementById('content-dashboard').innerHTML = `<div class="bg-white shadow-xl rounded-2xl p-6"><h2 class="text-xl font-bold text-gray-800 mb-4">Suivi du matériel</h2><div class="mb-8 p-4 bg-yellow-50 rounded-xl shadow-inner border-l-4 border-yellow-400 flex flex-wrap justify-between items-center text-sm md:text-base"><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Radios:</span><span class="font-bold text-blue-600" id="radios-distribuees">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="radios-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquantes:</span><span class="font-bold text-lg text-red-500" id="radios-manquantes">0</span></div></div><div class="flex-grow"></div><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Sifflets:</span><span class="font-bold text-blue-600" id="sifflets-distribues">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="sifflets-restitues">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquants:</span><span class="font-bold text-lg text-red-500" id="sifflets-manquants">0</span></div></div><div class="flex-grow"></div><div class="flex items-center space-x-2 mt-4 md:mt-0"><span class="font-medium text-gray-700">Appareils manquants:</span><span class="font-bold text-2xl text-red-500" id="appareils-manquants">0</span></div></div><h2 class="text-xl font-bold text-gray-800 mb-4">Liste des bénévoles</h2><div class="flex flex-col lg:flex-row justify-between items-center mb-4 gap-4"><div class="flex flex-wrap items-end gap-4"><button id="add-benevole-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">+ Ajouter un bénévole</button></div><div class="w-full lg:w-auto flex-grow flex justify-center"><input type="text" id="filter-input" placeholder="Rechercher un bénévole..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full max-w-xs"></div><div class="flex items-center gap-4"><div class="flex items-center gap-2" id="missing-info-container"><input type="checkbox" id="filter-missing-info" class="form-checkbox h-4 w-4 text-red-600 rounded"><label for="filter-missing-info" class="text-sm font-medium text-gray-700 select-none">Infos manquantes ❌</label></div><div class="flex items-center gap-2"><input type="checkbox" id="toggleTel" class="form-checkbox h-4 w-4 text-blue-600 rounded"><label for="toggleTel" class="text-sm font-medium text-gray-700 select-none">Masquer Tél.</label></div><div class="flex items-center gap-2"><span id="save-message" class="text-green-600 font-bold"></span><button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table class="divide-y divide-gray-200" id="benevoles-table"><thead class="bg-gray-200 sticky top-0 z-10"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider rounded-tl-xl">Nom & Prénom</th><th data-column="tel" class="px-4 py-3 text-left text-xs font-bold uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Jours de présence</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Lieu d'affectation 📍</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Fonction 💼</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Matériel (D/R)</th><th data-column="zello" class="px-4 py-3 text-left text-xs font-bold uppercase">Zello 📻</th><th data-column="acces" class="px-4 py-3 text-left text-xs font-bold uppercase">Accès</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>`;
+            document.getElementById('content-concurrents').innerHTML = `<div class="bg-white shadow-xl rounded-2xl p-6"><h2 class="text-xl font-bold text-gray-800 mb-2">Ajouter un Concurrent</h2><form id="add-concurrent-form" class="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200 flex flex-wrap items-end gap-3"><div class="flex-grow"><label for="concurrent-numero" class="block text-sm font-medium text-gray-700">N°</label><input type="number" id="concurrent-numero" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div class="flex-grow-[3]"><label for="concurrent-nom" class="block text-sm font-medium text-gray-700">Nom Concurrent / Équipe</label><input type="text" id="concurrent-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div class="flex items-center pt-6"><input type="checkbox" id="concurrent-enfant" class="h-4 w-4 text-blue-600 rounded mr-2"><label for="concurrent-enfant" class="text-sm font-medium text-gray-700">Enfant 🧒</label></div><button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button></form><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold text-gray-800">Liste des Concurrents</h2><div><span id="save-concurrents-message" class="text-green-600 font-bold mr-4"></span><button id="save-concurrents-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">Sauvegarder</button></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table id="concurrents-admin-table" class="divide-y divide-gray-200"><thead class="bg-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tl-xl">N°</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Concurrent</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Enfant</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Dossier Inscription</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Assurance</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Paiement Cotisation</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Équipements Sécurité</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Contrôle Tech.</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="concurrents-admin-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>`;
+            document.getElementById('content-race').innerHTML = `<div class="bg-white shadow-xl rounded-2xl p-6"><div id="chrono-container" class="mb-6 p-6 bg-gray-50 rounded-2xl shadow-inner"><h2 class="text-xl font-bold text-gray-800 mb-4 text-center">Chronomètre (<span id="current-manche-display"></span>)</h2><div class="max-w-md mx-auto"><div class="mb-4"><label for="concurrent-select" class="block text-sm font-medium text-gray-700 mb-1">Concurrent au départ</label><select id="concurrent-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></select></div><div id="chrono-display" class="text-5xl font-bold text-center text-blue-600 bg-white p-4 rounded-xl mb-4 shadow">00:00:00</div><div class="grid grid-cols-2 gap-3 mt-auto"><button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Démarrer</button><button id="stop-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Arrêter et Enregistrer</button><button id="reset-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200 col-span-2">Réinitialiser</button></div></div></div><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold text-gray-800">Classement de la Course</h2><div class="flex items-center gap-2"><button id="reset-race-btn" class="bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded-xl transition duration-200 mr-2">Réinitialiser Course</button><button id="new-heat-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200 mr-2">Manche Suivante</button><button id="previous-heat-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200 mr-2">Temps Manche Précédente</button><button id="podium-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-xl transition duration-200">Podium</button></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table class="divide-y divide-gray-200" id="concurrents-table"><thead id="concurrents-table-head" class="bg-gray-200"></thead><tbody id="concurrents-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>`;
+            document.getElementById('content-access').innerHTML = `<div class="bg-white shadow-xl rounded-2xl p-6"><h2 class="text-xl font-bold text-gray-800 mb-2">Gérer les utilisateurs autorisés</h2><p class="text-gray-600 mb-6 text-sm">Seuls les utilisateurs listés ici peuvent se connecter.</p><form id="add-user-form" class="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-wrap items-end gap-4"><div class="flex-grow"><label for="user-nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="user-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="user-prenom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" id="user-tel" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-role" class="block text-sm font-medium text-gray-700">Rôle</label><select id="user-role" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"><option value="Organisation">Organisation</option><option value="Chrono Départ">Chrono Départ</option><option value="Chrono Arrivée">Chrono Arrivée</option><option value="Bénévole">Bénévole</option><option value="Concurrent">Concurrent</option></select></div><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button></form><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-100"><tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Nom Prénom</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Rôle</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th></tr></thead><tbody id="access-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>`;
+            document.getElementById('add-benevole-modal').innerHTML = `<div class="modal-content max-w-md"><div class="modal-header"><h2>Ajouter un nouveau bénévole</h2><button class="modal-close-button" id="close-modal-btn">&times;</button></div><form id="add-benevole-form" class="space-y-4"><div><label for="nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="nom" name="nom" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></div><div><label for="prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="prenom" name="prenom" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></div><div><label for="tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" id="tel" name="tel" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex justify-end pt-4"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">Ajouter</button></div></form></div>`;
+            
+            // Re-select all elements after injection
+            const tableBody = document.getElementById('table-body'), toggleTelCheckbox = document.getElementById('toggleTel'), addBenevoleBtn = document.getElementById('add-benevole-btn'), saveBtn = document.getElementById('save-btn'), closeModalBtn = document.getElementById('close-modal-btn'), addBenevoleForm = document.getElementById('add-benevole-form'), filterInput = document.getElementById('filter-input'), filterMissingInfoCheckbox = document.getElementById('filter-missing-info');
+            const chronoDisplay=document.getElementById("chrono-display"),startBtn=document.getElementById("start-btn"),stopBtn=document.getElementById("stop-btn"),resetBtn=document.getElementById("reset-btn"),raceConcurrentsTableBody=document.getElementById("concurrents-table-body"),concurrentSelect=document.getElementById("concurrent-select"),addConcurrentFormAdmin = document.getElementById('add-concurrent-form'),concurrentsAdminBody = document.getElementById('concurrents-admin-body'),saveConcurrentsBtn = document.getElementById('save-concurrents-btn'),saveConcurrentsMessage = document.getElementById('save-concurrents-message'),addUserForm = document.getElementById('add-user-form'),accessTableBody = document.getElementById('access-table-body'), newHeatBtn = document.getElementById('new-heat-btn'), podiumBtn = document.getElementById('podium-btn'), previousHeatBtn = document.getElementById('previous-heat-btn'), concurrentsTableHead = document.getElementById('concurrents-table-head'), currentMancheDisplay = document.getElementById('current-manche-display'), gridScreen=document.getElementById("starting-grid-screen"),closeGridBtn=document.getElementById("close-grid-btn"), resetRaceBtn = document.getElementById('reset-race-btn');
+            
+            // =========================
+            // BÉNÉVOLES LOGIC
+            // =========================
+            let data = [];
+            const rolesOptions = ["Aucun accès", "Organisation", "Chrono Départ", "Chrono Arrivée", "Bénévole", "Concurrent"];
+            const joursOptions=["Samedi","Dimanche","Samedi/Dimanche","Non renseigné"],fonctionOptions=["Organisateur 🧑‍💼","Accueil / Inscriptions 📝","Contrôle Technique 🛠️","Sécurité Piste 🚧","Commissaire de Course 🚦","Chronométrage ⏱️","Logistique 🚚","Relations Compétiteurs 👋","Espace Convivialité -Bénévoles 🧑‍🤝‍🧑","Remontée des Caisses 🚜","Speaker 📢","Photographe 📸","Responsable Radio 📻","Pôle de Départ 🏁","Pôle d'Arrivée ✅","Podium 🏆","Secrétariat 📋","Responsable Expo voiture 🚗","Soutien opérationnel","À définir"],lieuOptions=["Mobile sur l'ensemble du parcours","Parc Concurrents","Piste de Course","Grille de Départ","Contrôle Technique","Espace Bénévoles","Rue de l'étang","Rue des Ajoncs","Rue Maréchal Leclerc","Rue Général De Gaulle","Rue Général Déborde","Rue des Écoles","Rue Madame Gadot","Rue Saint-Joseph","Rue François Le Bail","Ligne d'arrivée","Garage Motrio","À définir"];
+            
+            const benevolesCollection = collection(db, `artifacts/${appId}/public/data/benevoles`);
+            onSnapshot(benevolesCollection, (snapshot) => {
+                data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderBenevolesTable();
+            });
+
+            async function saveBenevolesData() {
+                const batch = writeBatch(db);
+                data.forEach(benevole => {
+                    const { id, ...benevoleData } = benevole;
+                    const docRef = doc(db, `artifacts/${appId}/public/data/benevoles`, id);
+                    batch.update(docRef, benevoleData);
+                });
+                await batch.commit();
+                const saveMessage = document.getElementById("save-message");
+                saveMessage.textContent="Données sauvegardées !";
+                saveMessage.classList.add("show");
+                setTimeout(()=>{saveMessage.classList.remove("show")},3e3)
+            }
+            
+            function updateAccessFromBenevole(benevole, newRole) {
+                const existingUser = utilisateursAutorises.find(u => u.tel === benevole.tel);
+                if (newRole === 'Aucun accès') {
+                    if (existingUser) deleteDoc(doc(db, `artifacts/${appId}/public/data/users`, existingUser.id));
+                } else {
+                    if (existingUser) {
+                        updateDoc(doc(db, `artifacts/${appId}/public/data/users`, existingUser.id), { role: newRole });
+                    } else {
+                        addDoc(collection(db, `artifacts/${appId}/public/data/users`), { nom: benevole.nom, prenom: benevole.prenom, tel: benevole.tel, role: newRole });
+                    }
+                }
+            }
+            function createBenevoleSelect(e,t,n,o){const l=document.createElement("select");l.className="py-1 px-2 border-gray-200 rounded-md shadow-sm text-sm w-full";return e.forEach(e=>{const n=document.createElement("option");n.value=e,n.textContent=e,e===t&&(n.selected=!0),l.appendChild(n)}),l.addEventListener("change",()=>{if("role"===o){const e=data[n];e&&updateAccessFromBenevole(e,l.value)}else data[n][o]=l.value}),l}
+            function renderBenevolesTable() {
+                const filterValue = filterInput.value.toLowerCase();
+                const missingInfoOnly = filterMissingInfoCheckbox.checked;
+
+                let dataToRender = data.filter(p => `${p.nom} ${p.prenom}`.toLowerCase().includes(filterValue));
+
+                if (missingInfoOnly) {
+                    dataToRender = dataToRender.filter(p => p.tel === "Non renseigné" || p.jours === "Non renseigné" || p.lieu === "À définir" || p.fonction === "À définir");
+                }
+
+                tableBody.innerHTML = "";
+
+                dataToRender.forEach((person, index) => {
+                    const personIndex = data.findIndex(p => p.id === person.id);
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+                        <td class="px-4 py-3"><input type="text" value="${person.nom} ${person.prenom}" class="w-full text-sm"></td>
+                        <td data-column="tel" class="px-4 py-3"><input type="tel" value="${person.tel}" class="w-full text-sm ${!person.tel || person.tel === "Non renseigné" ? "text-red-500" : ""}"></td>
+                        <td class="px-4 py-3"></td>
+                        <td class="px-4 py-3"></td>
+                        <td class="px-4 py-3"></td>
+                        <td class="px-4 py-3"></td>
+                        <td data-column="zello" class="px-4 py-3 text-center"><input type="checkbox" ${person.zello ? "checked" : ""} class="h-4 w-4 text-blue-600 rounded"></td>
+                        <td data-column="acces" class="px-4 py-3"></td>
+                        <td class="px-4 py-3 text-center"><button data-id="${person.id}" class="delete-benevole-btn text-red-500 hover:text-red-700 text-xs">Supprimer</button></td>
+                    `;
+
+                    row.querySelector('input[type="text"]').onchange = (e) => { const [nom, ...prenomParts] = e.target.value.split(' '); data[personIndex].nom = nom.toUpperCase(); data[personIndex].prenom = prenomParts.join(' '); };
+                    row.querySelector('input[type="tel"]').onchange = (e) => { data[personIndex].tel = e.target.value.replace(/\s/g, ''); };
+                    row.querySelector('input[type="checkbox"]').onchange = (e) => { data[personIndex].zello = e.target.checked; };
+                    
+                    row.children[2].appendChild(createBenevoleSelect(joursOptions, person.jours, personIndex, "jours"));
+                    row.children[3].appendChild(createBenevoleSelect(lieuOptions, person.lieu, personIndex, "lieu"));
+                    row.children[4].appendChild(createBenevoleSelect(fonctionOptions, person.fonction, personIndex, "fonction"));
+
+                    const materielDiv = document.createElement('div');
+                    materielDiv.className = 'flex flex-col space-y-1';
+                    Object.keys(person.materiel).forEach(key => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'flex items-center space-x-2';
+                        itemDiv.innerHTML = `<span class="w-12 text-sm">${key}:</span>`;
+                        const distribueCheckbox = document.createElement('input');
+                        distribueCheckbox.type = 'checkbox';
+                        distribueCheckbox.checked = person.materiel[key].distribue;
+                        distribueCheckbox.className = 'h-4 w-4 text-blue-600 rounded';
+                        distribueCheckbox.onchange = () => { data[personIndex].materiel[key].distribue = distribueCheckbox.checked; updateMaterialSummary(); };
+                        itemDiv.appendChild(distribueCheckbox);
+                        const restitueCheckbox = document.createElement('input');
+                        restitueCheckbox.type = 'checkbox';
+                        restitueCheckbox.checked = person.materiel[key].restitue;
+                        restitueCheckbox.className = 'h-4 w-4 text-green-600 rounded';
+                        restitueCheckbox.onchange = () => { data[personIndex].materiel[key].restitue = restitueCheckbox.checked; updateMaterialSummary(); };
+                        itemDiv.appendChild(restitueCheckbox);
+                        materielDiv.appendChild(itemDiv);
+                    });
+                    row.children[5].appendChild(materielDiv);
+                    
+                    const userInAccessList = utilisateursAutorises.find(u => u.tel === person.tel);
+                    const currentRole = userInAccessList ? userInAccessList.role : "Aucun accès";
+                    const roleSelect = createBenevoleSelect(rolesOptions, currentRole, personIndex, "role");
+                    row.children[7].appendChild(roleSelect);
+                    
+                    tableBody.appendChild(row);
+                });
+                document.querySelectorAll('.delete-benevole-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const personId = e.target.dataset.id;
+                        const person = data.find(p => p.id === personId);
+                        if (confirm(`Êtes-vous sûr de vouloir supprimer ${person.prenom} ${person.nom} ?`)) {
+                            deleteDoc(doc(db, `artifacts/${appId}/public/data/benevoles`, personId));
+                            const accessUser = utilisateursAutorises.find(u => u.tel === person.tel);
+                            if (accessUser) {
+                                deleteDoc(doc(db, `artifacts/${appId}/public/data/users`, accessUser.id));
+                            }
+                        }
+                    });
+                });
+                
+                updateMaterialSummary();
+                toggleTelColumn();
+                setupBenevolePermissions();
+            }
+            function updateMaterialSummary(){let e=0,t=0,n=0,o=0;data.forEach(l=>{l.materiel.Radio&&l.materiel.Radio.distribue&&e++,l.materiel.Radio&&l.materiel.Radio.restitue&&t++,l.materiel.Sifflet&&l.materiel.Sifflet.distribue&&n++,l.materiel.Sifflet&&l.materiel.Sifflet.restitue&&o++});const l=e-t,a=n-o;document.getElementById("radios-distribuees").textContent=e,document.getElementById("radios-restituees").textContent=t,document.getElementById("radios-manquantes").textContent=l,document.getElementById("sifflets-distribues").textContent=n,document.getElementById("sifflets-restitues").textContent=o,document.getElementById("sifflets-manquants").textContent=a,document.getElementById("appareils-manquants").textContent=l+a}
+            function toggleTelColumn(){const e=toggleTelCheckbox.checked,t=document.querySelector('th[data-column="tel"]'),n=document.querySelectorAll('td[data-column="tel"]');if(t)t.style.display=e?"none":"" ; n.forEach(t=>{t.style.display=e?"none":""})}
+            saveBtn.addEventListener('click',saveBenevolesData);
+            addBenevoleBtn.addEventListener('click',()=>document.getElementById('add-benevole-modal').style.display='flex');
+            closeModalBtn.addEventListener('click',()=>document.getElementById('add-benevole-modal').style.display='none');
+            addBenevoleForm.addEventListener('submit', async e=>{e.preventDefault();const t={nom:document.getElementById("nom").value.toUpperCase(),prenom:document.getElementById("prenom").value,tel:document.getElementById("tel").value.replace(/\s/g,"")||"Non renseigné",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1};await addDoc(collection(db, `artifacts/${appId}/public/data/benevoles`), t);document.getElementById('add-benevole-modal').style.display="none",addBenevoleForm.reset()});
+            filterInput.addEventListener('input',renderBenevolesTable);
+            filterMissingInfoCheckbox.addEventListener('change', renderBenevolesTable);
+            toggleTelCheckbox.addEventListener('change',toggleTelColumn);
+
+            // =========================
+            // CONCURRENTS & RACE LOGIC
+            // =========================
+            let concurrents=[],startTime,updatedTime,difference,tInterval,running=!1, currentManche = 1;
+            const concurrentsCollection = collection(db, `artifacts/${appId}/public/data/concurrents`);
+            onSnapshot(concurrentsCollection, (snapshot) => {
+                concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAllConcurrentsView();
+            });
+            async function saveConcurrentsData(){ const batch = writeBatch(db); concurrents.forEach(c => { const { id, ...concurData } = c; const docRef = doc(db, `artifacts/${appId}/public/data/concurrents`, id); batch.update(docRef, concurData); }); await batch.commit(); saveConcurrentsMessage.classList.add('show'); setTimeout(() => { saveConcurrentsMessage.classList.remove('show'); }, 3000); }
+            function renderAllConcurrentsView(){renderConcurrentsAdminTable();renderRaceTable()}
+            function renderConcurrentsAdminTable(){concurrentsAdminBody.innerHTML="",concurrents.sort((e,t)=>e.numero-t.numero).forEach(e=>{const t=concurrents.findIndex(t=>t.numero===e.numero),n=document.createElement("tr");n.innerHTML=`<td class="px-4 py-3 text-sm">${e.numero}</td><td class="px-4 py-3 text-sm">${e.nom}</td><td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${e.numero}" data-doc="isChild" class="doc-check h-4 w-4 text-blue-600 rounded" ${e.isChild?"checked":""}></td><td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${e.numero}" data-doc="dossier" class="doc-check h-4 w-4 text-blue-600 rounded" ${e.documents.dossier?"checked":""}></td><td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${e.numero}" data-doc="assurance" class="doc-check h-4 w-4 text-blue-600 rounded" ${e.documents.assurance?"checked":""}></td><td class="px-4 py-3 text-center"><div class="flex items-center justify-center space-x-2"><input type="checkbox" data-numero="${e.numero}" data-doc="paiement" class="doc-check h-4 w-4 text-blue-600 rounded" ${e.documents.paiement.ok?"checked":""}><input type="text" placeholder="€" value="${e.documents.paiement.montant}" data-numero="${e.numero}" class="paiement-input text-sm"></div></td><td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${e.numero}" data-doc="equipements" class="doc-check h-4 w-4 text-blue-600 rounded" ${e.equipements?"checked":""}></td><td class="px-4 py-3"></td><td class="px-4 py-3 text-sm"><button data-id="${e.id}" class="delete-concurrent-btn text-red-500 hover:text-red-700 text-xs">Suppr.</button></td>`;const o=document.createElement("select");["À vérifier","Conforme","Non Conforme"].forEach(t=>{const n=document.createElement("option");n.value=t,n.textContent=t,e.controle===t&&(n.selected=!0),o.appendChild(n)}),o.value=e.controle,o.className=`controle-select rounded-md text-xs p-1 font-semibold ${"controle-"+e.controle.toLowerCase().replace(" ","").replace("é","e")}`,o.addEventListener("change",n=>{const o=concurrents[t];o&&(o.controle=n.target.value,n.target.className=`controle-select rounded-md text-xs p-1 font-semibold ${"controle-"+n.target.value.toLowerCase().replace(" ","").replace("é","e")}`)}),n.children[7].appendChild(o),concurrentsAdminBody.appendChild(n)});document.querySelectorAll(".delete-concurrent-btn").forEach(e=>e.addEventListener("click",e=>{const t=e.target.dataset.id;confirm(`Supprimer ce concurrent ?`)&& deleteDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, t))})),document.querySelectorAll(".doc-check").forEach(e=>e.addEventListener("change",e=>{const t=e.target.dataset.numero,n=e.target.dataset.doc,o=concurrents.find(e=>e.numero==t);o&&("paiement"===n?o.documents.paiement.ok=e.target.checked:"equipements"===n?o.equipements=e.target.checked:"isChild"===n?o.isChild=e.target.checked:o.documents[n]=e.target.checked)})),document.querySelectorAll(".paiement-input").forEach(e=>e.addEventListener("input",t=>{const n=t.target.dataset.numero,o=concurrents.find(e=>e.numero==n);o&&(o.documents.paiement.montant=t.target.value)}))}
+            function formatTime(e){if(null===e||e===1/0||typeof e === 'undefined')return"-";const t=new Date(e);return`${String(t.getUTCMinutes()).padStart(2,"0")}:${String(t.getUTCSeconds()).padStart(2,"0")}:${String(t.getUTCMilliseconds()).padStart(3,"0").slice(0,2)}`}
+            function updateChrono(){updatedTime=(new Date).getTime(),difference=updatedTime-startTime,chronoDisplay.textContent=formatTime(difference)}
+            function updateChronoButtons() {
+                const concurrentSelected = !!concurrentSelect.value;
+                const canStart = isSuperAdmin || currentUser.role === 'Organisation' || currentUser.role === 'Chrono Départ';
+                const canStop = isSuperAdmin || currentUser.role === 'Organisation' || currentUser.role === 'Chrono Arrivée';
+                const canReset = isSuperAdmin || currentUser.role === 'Organisation' || currentUser.role === 'Chrono Départ';
+
+                startBtn.disabled = !canStart || running || !concurrentSelected;
+                stopBtn.disabled = !canStop || !running;
+                resetBtn.disabled = !canReset || running;
+            }
+            function startTimer(){ if(running) return; startTime=(new Date).getTime()-(difference||0),tInterval=setInterval(updateChrono,10),running=!0,updateChronoButtons() }
+            function stopTimer(){ if(!running) return; clearInterval(tInterval),running=!1,saveTimer(),updateChronoButtons() }
+            function resetTimer(){clearInterval(tInterval),running=!1,difference=0,chronoDisplay.textContent="00:00:00",updateChronoButtons()}
+            async function saveTimer(){if(!difference)return;const e=concurrentSelect.value;if(e){const t=concurrents.find(t=>t.numero==e);if(t){const n=t.manches;n[currentManche-1]=difference,await updateDoc(doc(db,`artifacts/${appId}/public/data/concurrents`,t.id),{manches:n}),resetTimer()}else alert("Concurrent non trouvé.")}else alert("Veuillez sélectionner un concurrent.")}
+            function startNewHeat() { if (confirm("Êtes-vous sûr de vouloir passer à la manche suivante ?")) { if(currentManche < 8) currentManche++; renderRaceTable(); } else { alert("Nombre maximum de manches atteint."); } }
+            async function resetRace() { if(isSuperAdmin && confirm("ACTION IRRÉVERSIBLE\n\nÊtes-vous sûr de vouloir réinitialiser TOUTE la course ? Tous les temps de tous les concurrents seront effacés.")) { const batch = writeBatch(db); concurrents.forEach(c => { const docRef = doc(db, `artifacts/${appId}/public/data/concurrents`, c.id); batch.update(docRef, { manches: new Array(8).fill(null), meilleurTemps: null, tempsTotal: null }); }); await batch.commit(); currentManche = 1; } }
+            function renderRaceTable(){
+                const headers = ['Cl.', 'N°', 'Concurrent', ...Array.from({length: 8}, (_, i) => i < 2 ? `Test ${i+1}` : `Course ${i-1}`), 'Temps Total', 'Meilleur Temps'];
+                concurrentsTableHead.innerHTML = `<tr>${headers.map((h, i) => `<th class="px-4 py-3 text-left text-xs font-bold uppercase ${i===0?'rounded-tl-xl':''} ${i===headers.length-1?'rounded-tr-xl':''}">${h}</th>`).join('')}</tr>`;
+
+                concurrents.forEach(c => {
+                    const officialRuns = c.manches.slice(2).filter(t => t);
+                    c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
+                    c.tempsTotal = officialRuns.length > 0 ? officialRuns.reduce((a, b) => a + b, 0) : null;
+                });
+                
+                concurrents.sort((a,b) => {
+                    if (a.meilleurTemps === null) return 1;
+                    if (b.meilleurTemps === null) return -1;
+                    return a.meilleurTemps - b.meilleurTemps;
+                });
+                
+                raceConcurrentsTableBody.innerHTML="";
+                concurrents.forEach((e,t)=>{
+                    const n=document.createElement("tr"),o=null!==e.meilleurTemps?t+1:"-";
+                    let rowHtml = `<td class="px-4 py-3 text-sm font-bold">${o}</td><td class="px-4 py-3 text-sm">${e.numero}</td><td class="px-4 py-3 text-sm">${e.nom} ${e.isChild ? '🧒' : ''}</td>`;
+                    for(let i=0; i<8; i++){ rowHtml += `<td class="px-4 py-3 text-sm">${formatTime(e.manches[i])}</td>`; }
+                    rowHtml += `<td class="px-4 py-3 text-sm font-bold">${formatTime(e.tempsTotal)}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(e.meilleurTemps)}</td>`;
+                    n.innerHTML = rowHtml;
+                    raceConcurrentsTableBody.appendChild(n);
+                });
+                
+                currentMancheDisplay.textContent = currentManche <= 2 ? `Test ${currentManche}` : `Course ${currentManche - 2}`;
+                populateConcurrentSelect();
+            }
+            function populateConcurrentSelect(){const e=concurrentSelect.value;concurrentSelect.innerHTML='<option value="">-- Choisir un concurrent --</option>',concurrents.sort((e,t)=>e.numero-t.numero).forEach(e=>{const t=document.createElement("option");t.value=e.numero,t.textContent=`N°${e.numero} - ${e.nom}`,concurrentSelect.appendChild(t)}),concurrentSelect.value=e}
+            function showGrid(type) {
+                const title = document.getElementById("grid-title");
+                const gridHead = document.querySelector("#grid-table thead");
+                const gridBody = document.getElementById("grid-table-body");
+                gridBody.innerHTML = "";
+
+                if (type === 'podium') {
+                    title.textContent = "Podium Final";
+                    gridHead.innerHTML = `<tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">N°</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Meilleur Temps</th></tr>`;
+                    const ranked = [...concurrents].sort((a,b) => (a.meilleurTemps || Infinity) - (b.meilleurTemps || Infinity));
+                    ranked.forEach((c, i) => {
+                        gridBody.innerHTML += `<tr><td class="px-4 py-3 text-sm font-bold">${i+1}</td><td class="px-4 py-3 text-sm">${c.numero}</td><td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.meilleurTemps)}</td></tr>`;
+                    });
+                } else { // Previous heat
+                    if (currentManche === 1) { alert("Aucune manche précédente à afficher."); return; }
+                    const prevMancheIndex = currentManche - 2;
+                    const prevMancheName = prevMancheIndex < 2 ? `Test ${prevMancheIndex + 1}` : `Course ${prevMancheIndex - 1}`;
+                    title.textContent = `Classement - ${prevMancheName}`;
+                    gridHead.innerHTML = `<tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">N°</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Temps ${prevMancheName}</th></tr>`;
+                    const ranked = [...concurrents].filter(c => c.manches[prevMancheIndex]).sort((a,b) => a.manches[prevMancheIndex] - b.manches[prevMancheIndex]);
+                     ranked.forEach((c, i) => {
+                        gridBody.innerHTML += `<tr><td class="px-4 py-3 text-sm font-bold">${i+1}</td><td class="px-4 py-3 text-sm">${c.numero}</td><td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.manches[prevMancheIndex])}</td></tr>`;
+                    });
+                }
+                mainApp.style.display="none",gridScreen.style.display="flex"
+            }
+            startBtn.addEventListener('click',startTimer);
+            stopBtn.addEventListener('click',stopTimer);
+            resetBtn.addEventListener('click',resetTimer);
+            newHeatBtn.addEventListener('click', startNewHeat);
+            resetRaceBtn.addEventListener('click', resetRace);
+            saveConcurrentsBtn.addEventListener('click', saveConcurrentsData);
+            addConcurrentFormAdmin.addEventListener('submit', async e=>{e.preventDefault();const t=document.getElementById("concurrent-numero").value,n=document.getElementById("concurrent-nom").value, o=document.getElementById("concurrent-enfant").checked;if(concurrents.some(e=>e.numero==t)){alert("Ce numéro de concurrent existe déjà.");return}await addDoc(collection(db, `artifacts/${appId}/public/data/concurrents`),{numero:parseInt(t),nom:n, isChild: o, manches:new Array(8).fill(null),meilleurTemps:null,documents:{dossier:!1,paiement:{ok:!1,montant:""},assurance:!1},equipements:!1,controle:"À vérifier"}),addConcurrentFormAdmin.reset()});
+            concurrentSelect.addEventListener("change",updateChronoButtons);
+            previousHeatBtn.addEventListener('click', () => showGrid('previous'));
+            podiumBtn.addEventListener('click', () => showGrid('podium'));
+            closeGridBtn.addEventListener('click',()=>{mainApp.style.display="block",gridScreen.style.display="none"});
+
+            // =========================
+            // ACCESS LOGIC & INIT
+            // =========================
+            function renderAccessTable(){accessTableBody.innerHTML="",utilisateursAutorises.forEach((e,t)=>{const n=document.createElement("tr");n.innerHTML=`<td class="px-4 py-3 text-sm text-gray-800">${e.prenom} ${e.nom}</td><td class="px-4 py-3 text-sm text-gray-500">${e.tel}</td><td class="px-4 py-3 text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${["Organisation","Chrono Départ", "Chrono Arrivée"].includes(e.role)?"bg-blue-100 text-blue-800":"bg-gray-100 text-gray-800"}">${e.role}</span></td><td class="px-4 py-3 text-sm text-gray-500"><button data-id="${e.id}" class="delete-user-btn text-red-500 hover:text-red-700">Supprimer</button></td>`,accessTableBody.appendChild(n)}),document.querySelectorAll(".delete-user-btn").forEach(e=>{e.addEventListener("click",e=>{const t=e.target.dataset.id,n=utilisateursAutorises.find(e=>e.id===t);if(isSuperAdmin&&1===utilisateursAutorises.filter(e=>"Organisation"===e.role).length&&"Organisation"===n.role)return void alert("Action impossible : vous ne pouvez pas supprimer le dernier organisateur.");confirm(`Êtes-vous sûr de vouloir supprimer ${n.prenom} ${n.nom} ?`)&&deleteDoc(doc(db,`artifacts/${appId}/public/data/users`,t))})})}
+            addUserForm.addEventListener('submit', async e=>{e.preventDefault();const t={nom:document.getElementById("user-nom").value.trim().toUpperCase(),prenom:document.getElementById("user-prenom").value.trim(),tel:document.getElementById("user-tel").value.replace(/\s/g,""),role:document.getElementById("user-role").value};if(utilisateursAutorises.some(e=>e.tel===t.tel))return void alert("Un utilisateur avec ce numéro de téléphone existe déjà.");await addDoc(collection(db,`artifacts/${appId}/public/data/users`), t),addUserForm.reset()});
+            
+            // =========================
+            // PERMISSIONS & FINAL SETUP
+            // =========================
+            function setupBenevolePermissions() {
+                const canEdit = isSuperAdmin || currentUser.role === 'Organisation';
+                document.querySelectorAll('#table-body input, #table-body select').forEach(el => {
+                    const cell = el.closest('td');
+                    if (cell && cell.dataset.column === 'acces') {
+                         el.disabled = !isSuperAdmin;
+                    } else {
+                         el.disabled = !canEdit;
+                    }
+                });
+                 document.querySelectorAll('.delete-benevole-btn').forEach(btn => btn.style.display = canEdit ? '' : 'none');
+            }
+
+            function setupPermissions() {
+                const role = currentUser.role;
+                const tabsContainer = document.querySelector('nav[aria-label="Tabs"]');
+                let firstVisibleTabId = null;
+
+                const allTabs = ['tab-dashboard', 'tab-concurrents', 'tab-race', 'tab-access'];
+                const visibleTabs = {
+                    'Organisation': ['tab-dashboard', 'tab-concurrents', 'tab-race'],
+                    'Chrono Départ': ['tab-dashboard', 'tab-race'],
+                    'Chrono Arrivée': ['tab-dashboard', 'tab-race'],
+                    'Bénévole': ['tab-dashboard', 'tab-race'],
+                    'Concurrent': ['tab-race']
+                };
+
+                allTabs.forEach(tabId => {
+                    const tabElement = document.getElementById(tabId);
+                    if (tabElement) tabElement.style.display = 'none';
+                });
+
+                if (isSuperAdmin) {
+                    allTabs.forEach(tabId => {
+                        const tabElement = document.getElementById(tabId);
+                        if (tabElement) tabElement.style.display = 'block';
+                    });
+                    firstVisibleTabId = 'tab-dashboard';
+                } else if (visibleTabs[role]) {
+                    visibleTabs[role].forEach(tabId => {
+                        const tabElement = document.getElementById(tabId);
+                        if (tabElement) tabElement.style.display = 'block';
+                    });
+                    firstVisibleTabId = visibleTabs[role][0];
+                }
+                
+                if (firstVisibleTabId) {
+                    document.getElementById(firstVisibleTabId).click();
+                }
+                
+                const canEditBenevoles = isSuperAdmin || role === 'Organisation';
+                const canEditConcurrents = isSuperAdmin || role === 'Organisation';
+                const canSeeChronoAndPodium = isSuperAdmin || role === 'Organisation' || role === 'Chrono Départ' || role === 'Chrono Arrivée';
+                const isAlexisFievet = currentUser.nom === 'FIEVET' && currentUser.prenom === 'Alexis';
+
+                if (!canEditBenevoles) {
+                    document.getElementById('add-benevole-btn').style.display = 'none';
+                    document.getElementById('save-btn').style.display = 'none';
+                    document.getElementById('missing-info-container').style.display = 'none';
+                }
+                if (!canEditConcurrents) {
+                    document.getElementById('add-concurrent-form').style.display = 'none';
+                    document.getElementById('save-concurrents-btn').style.display = 'none';
+                }
+                
+                if (!isSuperAdmin) {
+                    resetRaceBtn.style.display = 'none';
+                }
+
+                const canStartHeat = isSuperAdmin || role === 'Organisation' || role === 'Chrono Départ';
+                if (!canStartHeat) {
+                    document.getElementById('new-heat-btn').style.display = 'none';
+                }
+
+                if (!canSeeChronoAndPodium || isAlexisFievet) {
+                    document.getElementById('chrono-container').style.display = 'none';
+                    podiumBtn.style.display = 'none';
+                    previousHeatBtn.style.display = 'none';
+                    newHeatBtn.style.display = 'none';
+                    resetRaceBtn.style.display = 'none';
+                }
+
+                 if(role === 'Bénévole' || role === 'Chrono Départ' || role === 'Chrono Arrivée') {
+                    document.querySelector('th[data-column="tel"]').style.display = 'none';
+                    document.querySelectorAll('td[data-column="tel"]').forEach(c => c.style.display = 'none');
+                    toggleTelCheckbox.parentElement.style.display = 'none';
+                }
+                if (!isSuperAdmin) {
+                     document.querySelectorAll('[data-column="zello"], [data-column="acces"]').forEach(el => el.style.display = 'none');
+                }
+                updateChronoButtons();
+            }
+            
+            // Tabs switching logic
+            const tabs = document.querySelectorAll('.tab-button');
+            const contents = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(item => item.classList.remove('active'));
+                    tab.classList.add('active');
+                    const targetId = tab.id.replace('tab-', 'content-');
+                    contents.forEach(content => {
+                        content.style.display = content.id === targetId ? 'block' : 'none';
+                    });
+                });
+            });
+
+            // Initial Load
+            onSnapshot(collection(db, `artifacts/${appId}/public/data/benevoles`), (snapshot) => {
+                data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderBenevolesTable();
+            });
+            onSnapshot(collection(db, `artifacts/${appId}/public/data/concurrents`), (snapshot) => {
+                concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAllConcurrentsView();
+            });
+
+            if (isSuperAdmin) { 
+                onSnapshot(collection(db, `artifacts/${appId}/public/data/users`), (snapshot) => {
+                    utilisateursAutorises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderAccessTable();
+                });
+            }
+            setupPermissions();
+        }
+        document.addEventListener('DOMContentLoaded', authenticateAndStart);
+    </script>
+</body>
+</html>
