@@ -101,7 +101,7 @@
         /* Style for control select */
         select.controle-conforme { background-color: #dcfce7; color: #166534; }
         select.controle-nonconforme { background-color: #fee2e2; color: #991b1b; }
-        select.controle-àvérifier { background-color: #fee2e2; color: #b91c1c; font-weight: bold; }
+        select.controle-àvérifier { background-color: #fef9c3; color: #854d0e; font-weight: bold; }
         input.paiement-input { border: 1px solid #d1d5db; border-radius: 0.375rem; padding: 0.25rem 0.5rem; width: 60px; }
         input:disabled.paiement-input { background-color: #f3f4f6; }
     </style>
@@ -110,7 +110,11 @@
 
     <!-- ÉCRAN DE CONNEXION -->
     <div id="login-screen">
-        <div class="login-content text-center max-w-md">
+        <div id="critical-error-display" class="login-content text-left max-w-lg" style="display: none;">
+            <h2 class="text-2xl font-bold mb-4 text-red-600">Erreur de Configuration Critique</h2>
+            <div id="critical-error-message" class="space-y-3"></div>
+        </div>
+        <div id="login-form-container" class="login-content text-center max-w-md">
             <h2 class="text-2xl font-bold mb-4">Accès au tableau de bord</h2>
             <p class="text-gray-600 mb-6">Veuillez vous identifier pour continuer.</p>
             <form id="login-form" class="space-y-4">
@@ -191,7 +195,12 @@
         <!-- Le contenu de la modale sera injecté ici par JS -->
     </div>
     
-    <script>
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp as initializeFirebaseApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, getDocs, addDoc, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        
         // SECTION 1: AUTHENTIFICATION
         const loginScreen = document.getElementById('login-screen');
         const mainApp = document.getElementById('main-app');
@@ -199,29 +208,102 @@
         const loginError = document.getElementById('login-error');
         const logoutBtn = document.getElementById('logout-btn');
         const userInfo = document.getElementById('user-info');
-        const accessLocalStorageKey = 'utilisateursAutorises';
+        
         let currentUser = null;
         let utilisateursAutorises = [];
         let isSuperAdmin = false;
+        let db;
+        let appId;
 
-        function loadAccessData() { 
-            const savedUsers = localStorage.getItem(accessLocalStorageKey); 
-            if (savedUsers) { 
-                utilisateursAutorises = JSON.parse(savedUsers); 
-            } else { 
-                utilisateursAutorises = [
-                    { nom: "POURCEL", prenom: "Romain", tel: "0613255651", role: "Organisation" },
-                    { nom: "FIEVET", prenom: "Alexis", tel: "0685163563", role: "Organisation" },
-                    { nom: "TEST", prenom: "Orga", tel: "0102030405", role: "Organisation" },
-                    { nom: "TEST", prenom: "ChronoDepart", tel: "0102030405", role: "Chrono Départ" },
-                    { nom: "TEST", prenom: "ChronoArrivee", tel: "0102030405", role: "Chrono Arrivée" },
-                    { nom: "TEST", prenom: "Benevole", tel: "0102030405", role: "Bénévole" },
-                    { nom: "TEST", prenom: "Concurrent", tel: "0102030405", role: "Concurrent" },
-                ]; 
-                saveAccessData(); 
-            } 
+        // <!-- ============================================================================== -->
+        // <!-- ================== ZONE À MODIFIER / HIGHLIGHTED AREA ================== -->
+        // <!-- VEUILLEZ REMPLACER LE BLOC CI-DESSOUS PAR VOTRE CONFIGURATION PERSONNELLE     -->
+        // <!-- OBTENUE DEPUIS LA CONSOLE FIREBASE LORS DE L'AJOUT DE VOTRE APPLICATION WEB. -->
+        // <!-- ============================================================================== -->
+        const firebaseConfig = {
+            apiKey: "AIzaSyCu1qYE7eSEheretG2xicIqlRjamgnEavA",
+            authDomain: "caisse-a-savon-2025-14a45.firebaseapp.com",
+            projectId: "caisse-a-savon-2025-14a45",
+            storageBucket: "caisse-a-savon-2025-14a45.appspot.com",
+            messagingSenderId: "301217982939",
+            appId: "1:301217982939:web:1a1c501328475256661ffe"
+        };
+        // <!-- ============================================================================== -->
+        // <!-- ========================== FIN DE LA ZONE À MODIFIER ========================= -->
+        // <!-- ============================================================================== -->
+
+        appId = 'caisse-a-savon-2025'; // Identifiant unique pour vos données
+        const app = initializeFirebaseApp(firebaseConfig);
+        db = getFirestore(app);
+        const auth = getAuth(app);
+
+        async function authenticateAndStart() {
+            try {
+                await signInAnonymously(auth);
+                await loadAccessData();
+            } catch (error) {
+                console.error("Erreur d'authentification Firebase:", error);
+                
+                document.getElementById('login-form-container').style.display = 'none';
+                const errorDisplay = document.getElementById('critical-error-display');
+                const errorMessageContainer = document.getElementById('critical-error-message');
+                errorDisplay.style.display = 'block';
+
+                let errorHtml = "";
+                
+                if (error.code === 'auth/configuration-not-found') {
+                    errorHtml = `
+                        <p class="font-semibold text-lg">Problème de configuration Firebase détecté.</p>
+                        <p class="mt-2">L'application ne peut pas démarrer car la connexion "Anonyme" n'est pas activée. C'est une étape de configuration <strong>obligatoire</strong>.</p>
+                        <strong class="block mt-4">Comment corriger :</strong>
+                        <ol class="list-decimal list-inside space-y-2 mt-2">
+                            <li>Ouvrez la <a href="https://console.firebase.google.com/" target="_blank" class="text-blue-600 hover:underline">console Firebase</a> de votre projet.</li>
+                            <li>Cliquez sur <strong>"Authentication"</strong> dans le menu de gauche (section "Build").</li>
+                            <li>Allez sur l'onglet <strong>"Sign-in method"</strong>.</li>
+                            <li>Dans la liste, trouvez <strong>"Anonyme"</strong> et cliquez dessus.</li>
+                            <li>Activez l'interrupteur et enregistrez.</li>
+                        </ol>
+                        <p class="mt-4">Après avoir fait cette modification, veuillez <strong>rafraîchir cette page</strong> pour utiliser l'application.</p>
+                    `;
+                } else if (error.code === 'auth/api-key-not-valid') {
+                     errorHtml = `
+                        <p class="font-semibold">La clé API (apiKey) dans votre configuration Firebase est invalide.</p>
+                        <p>Cela signifie que la configuration Firebase dans le code est incorrecte ou a mal été copiée.</p>
+                        <strong class="block mt-4">POUR CORRIGER :</strong>
+                        <ol class="list-decimal list-inside space-y-2 mt-2">
+                            <li>Retournez dans les paramètres de votre projet sur la <a href="https://console.firebase.google.com/" target="_blank" class="text-blue-600 hover:underline">console Firebase</a>.</li>
+                            <li>Copiez à nouveau et avec attention l'objet de configuration <code>firebaseConfig</code>.</li>
+                            <li>Collez-le dans le fichier <code>index.html</code> en vous assurant de remplacer entièrement le bloc d'exemple.</li>
+                        </ol>
+                     `;
+                } else {
+                    errorHtml = `<p>Une erreur inattendue est survenue. Veuillez vérifier la console du navigateur pour plus de détails.</p><p class="mt-2 text-sm text-gray-500">Code d'erreur : ${error.code}</p>`;
+                }
+                
+                errorMessageContainer.innerHTML = errorHtml;
+            }
         }
-        function saveAccessData() { localStorage.setItem(accessLocalStorageKey, JSON.stringify(utilisateursAutorises)); }
+
+        function loadAccessData() {
+            return new Promise((resolve, reject) => {
+                const usersCollection = collection(db, `artifacts/${appId}/public/data/users`);
+                const unsubscribe = onSnapshot(usersCollection, 
+                    (snapshot) => {
+                        utilisateursAutorises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        resolve();
+                    }, 
+                    (error) => {
+                        console.error("Erreur de lecture (Firestore):", error);
+                        if(error.code === 'permission-denied') {
+                            alert("Erreur de permission. Assurez-vous que les règles de sécurité de votre base de données Firestore sont correctement configurées ET que la structure des données (dossiers et sous-dossiers) a été créée exactement comme indiqué dans le guide.");
+                        } else {
+                            alert("Une erreur de base de données est survenue.");
+                        }
+                        reject(error);
+                    }
+                );
+            });
+        }
         
         function removeAccents(str) {
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -250,7 +332,7 @@
                 loginScreen.style.display = 'none'; 
                 mainApp.style.display = 'block'; 
                 userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`; 
-                initializeApp(); 
+                startAppLogic(); 
             } else { 
                 loginError.classList.remove('hidden'); 
             } 
@@ -258,7 +340,7 @@
         logoutBtn.addEventListener('click', () => { location.reload(); });
 
         // SECTION 2: LOGIQUE DE L'APPLICATION
-        function initializeApp() {
+        function startAppLogic() {
             // -- Inject HTML content for tabs --
             document.getElementById('content-dashboard').innerHTML = `<div class="bg-white shadow-xl rounded-2xl p-6"><h2 class="text-xl font-bold text-gray-800 mb-4">Suivi du matériel</h2><div class="mb-8 p-4 bg-yellow-50 rounded-xl shadow-inner border-l-4 border-yellow-400 flex flex-wrap justify-between items-center text-sm md:text-base"><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Radios:</span><span class="font-bold text-blue-600" id="radios-distribuees">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="radios-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquantes:</span><span class="font-bold text-lg text-red-500" id="radios-manquantes">0</span></div></div><div class="flex-grow"></div><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Sifflets:</span><span class="font-bold text-blue-600" id="sifflets-distribues">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="sifflets-restitues">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquants:</span><span class="font-bold text-lg text-red-500" id="sifflets-manquants">0</span></div></div><div class="flex-grow"></div><div class="flex items-center space-x-2 mt-4 md:mt-0"><span class="font-medium text-gray-700">Appareils manquants:</span><span class="font-bold text-2xl text-red-500" id="appareils-manquants">0</span></div></div><h2 class="text-xl font-bold text-gray-800 mb-4">Liste des bénévoles</h2><div class="flex flex-col lg:flex-row justify-between items-center mb-4 gap-4"><div class="flex flex-wrap items-end gap-4"><button id="add-benevole-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">+ Ajouter un bénévole</button></div><div class="w-full lg:w-auto flex-grow flex justify-center"><input type="text" id="filter-input" placeholder="Rechercher un bénévole..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full max-w-xs"></div><div class="flex items-center gap-4"><div class="flex items-center gap-2" id="missing-info-container"><input type="checkbox" id="filter-missing-info" class="form-checkbox h-4 w-4 text-red-600 rounded"><label for="filter-missing-info" class="text-sm font-medium text-gray-700 select-none">Infos manquantes ❌</label></div><div class="flex items-center gap-2"><input type="checkbox" id="toggleTel" class="form-checkbox h-4 w-4 text-blue-600 rounded"><label for="toggleTel" class="text-sm font-medium text-gray-700 select-none">Masquer Tél.</label></div><div class="flex items-center gap-2"><span id="save-message" class="text-green-600 font-bold"></span><button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table class="divide-y divide-gray-200" id="benevoles-table"><thead class="bg-gray-200 sticky top-0 z-10"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider rounded-tl-xl">Nom & Prénom</th><th data-column="tel" class="px-4 py-3 text-left text-xs font-bold uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Jours de présence</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Lieu d'affectation 📍</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Fonction 💼</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Matériel (D/R)</th><th data-column="zello" class="px-4 py-3 text-left text-xs font-bold uppercase">Zello 📻</th><th data-column="acces" class="px-4 py-3 text-left text-xs font-bold uppercase">Accès</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>`;
             document.getElementById('content-concurrents').innerHTML = `<div class="bg-white shadow-xl rounded-2xl p-6"><h2 class="text-xl font-bold text-gray-800 mb-2">Ajouter un Concurrent</h2><form id="add-concurrent-form" class="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200 flex flex-wrap items-end gap-3"><div class="flex-grow"><label for="concurrent-numero" class="block text-sm font-medium text-gray-700">N°</label><input type="number" id="concurrent-numero" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div class="flex-grow-[3]"><label for="concurrent-nom" class="block text-sm font-medium text-gray-700">Nom Concurrent / Équipe</label><input type="text" id="concurrent-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div class="flex items-center pt-6"><input type="checkbox" id="concurrent-enfant" class="h-4 w-4 text-blue-600 rounded mr-2"><label for="concurrent-enfant" class="text-sm font-medium text-gray-700">Enfant 🧒</label></div><button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button></form><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold text-gray-800">Liste des Concurrents</h2><div><span id="save-concurrents-message" class="text-green-600 font-bold mr-4"></span><button id="save-concurrents-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">Sauvegarder</button></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table id="concurrents-admin-table" class="divide-y divide-gray-200"><thead class="bg-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tl-xl">N°</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Concurrent</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Enfant</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Dossier Inscription</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Assurance</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Paiement Cotisation</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Équipements Sécurité</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Contrôle Tech.</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="concurrents-admin-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>`;
@@ -268,33 +350,83 @@
             
             // Re-select all elements after injection
             const tableBody = document.getElementById('table-body'), toggleTelCheckbox = document.getElementById('toggleTel'), addBenevoleBtn = document.getElementById('add-benevole-btn'), saveBtn = document.getElementById('save-btn'), closeModalBtn = document.getElementById('close-modal-btn'), addBenevoleForm = document.getElementById('add-benevole-form'), filterInput = document.getElementById('filter-input'), filterMissingInfoCheckbox = document.getElementById('filter-missing-info');
-            const chronoDisplay=document.getElementById("chrono-display"),startBtn=document.getElementById("start-btn"),stopBtn=document.getElementById("stop-btn"),resetBtn=document.getElementById("reset-btn"),raceConcurrentsTableBody=document.getElementById("concurrents-table-body"),concurrentSelect=document.getElementById("concurrent-select"),addConcurrentFormAdmin = document.getElementById('add-concurrent-form'),concurrentsAdminBody = document.getElementById('concurrents-admin-body'),saveConcurrentsBtn = document.getElementById('save-concurrents-btn'),saveConcurrentsMessage = document.getElementById('save-concurrents-message'),addUserForm = document.getElementById('add-user-form'),accessTableBody = document.getElementById('access-table-body'), newHeatBtn = document.getElementById('new-heat-btn'), importBtn = document.getElementById('import-btn'), exportBtn = document.getElementById('export-btn'), importFile = document.getElementById('import-file'), podiumBtn = document.getElementById('podium-btn'), previousHeatBtn = document.getElementById('previous-heat-btn'), concurrentsTableHead = document.getElementById('concurrents-table-head'), currentMancheDisplay = document.getElementById('current-manche-display'), gridScreen=document.getElementById("starting-grid-screen"),closeGridBtn=document.getElementById("close-grid-btn"), resetRaceBtn = document.getElementById('reset-race-btn');
+            const chronoDisplay=document.getElementById("chrono-display"),startBtn=document.getElementById("start-btn"),stopBtn=document.getElementById("stop-btn"),resetBtn=document.getElementById("reset-btn"),raceConcurrentsTableBody=document.getElementById("concurrents-table-body"),concurrentSelect=document.getElementById("concurrent-select"),addConcurrentFormAdmin = document.getElementById('add-concurrent-form'),concurrentsAdminBody = document.getElementById('concurrents-admin-body'),saveConcurrentsBtn = document.getElementById('save-concurrents-btn'),saveConcurrentsMessage = document.getElementById('save-concurrents-message'),addUserForm = document.getElementById('add-user-form'),accessTableBody = document.getElementById('access-table-body'), newHeatBtn = document.getElementById('new-heat-btn'), podiumBtn = document.getElementById('podium-btn'), previousHeatBtn = document.getElementById('previous-heat-btn'), concurrentsTableHead = document.getElementById('concurrents-table-head'), currentMancheDisplay = document.getElementById('current-manche-display'), gridScreen=document.getElementById("starting-grid-screen"),closeGridBtn=document.getElementById("close-grid-btn"), resetRaceBtn = document.getElementById('reset-race-btn'), importBtn = document.getElementById('import-btn'), exportBtn = document.getElementById('export-btn'), importFile = document.getElementById('import-file');
             
             // =========================
             // BÉNÉVOLES LOGIC
             // =========================
             let data = [];
-            const benevolesLocalStorageKey = 'benevolesData';
             const rolesOptions = ["Aucun accès", "Organisation", "Chrono Départ", "Chrono Arrivée", "Bénévole", "Concurrent"];
             const joursOptions=["Samedi","Dimanche","Samedi/Dimanche","Non renseigné"],fonctionOptions=["Organisateur 🧑‍💼","Accueil / Inscriptions 📝","Contrôle Technique 🛠️","Sécurité Piste 🚧","Commissaire de Course 🚦","Chronométrage ⏱️","Logistique 🚚","Relations Compétiteurs 👋","Espace Convivialité -Bénévoles 🧑‍🤝‍🧑","Remontée des Caisses 🚜","Speaker 📢","Photographe 📸","Responsable Radio 📻","Pôle de Départ 🏁","Pôle d'Arrivée ✅","Podium 🏆","Secrétariat 📋","Responsable Expo voiture 🚗","Soutien opérationnel","À définir"],lieuOptions=["Mobile sur l'ensemble du parcours","Parc Concurrents","Piste de Course","Grille de Départ","Contrôle Technique","Espace Bénévoles","Rue de l'étang","Rue des Ajoncs","Rue Maréchal Leclerc","Rue Général De Gaulle","Rue Général Déborde","Rue des Écoles","Rue Madame Gadot","Rue Saint-Joseph","Rue François Le Bail","Ligne d'arrivée","Garage Motrio","À définir"];
-            function initializeDefaultBenevoles(){data=[{nom:"BENGLOAN",prenom:"Olivier",tel:"0786428560",jours:"Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"BICHERAY",prenom:"Stephane",tel:"0626593693",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"BOURASSEAU",prenom:"Patrick",tel:"0650448085",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"CARGOUER",prenom:"J M",tel:"Non renseigné",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"CARRO",prenom:"Charlotte",tel:"0665042490",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"CORMIER",prenom:"Sylvie",tel:"0677130771",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"COCHARD",prenom:"Catherine",tel:"0640993571",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"CARRE",prenom:"Emile",tel:"0781998575",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"DUBOIS",prenom:"Claude Francois",tel:"0781998575",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"DUMONT",prenom:"Richard",tel:"0614785140",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"DI GUGLIELMOT",prenom:"Martine",tel:"0677930792",jours:"Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"DI GUGLIELMOT",prenom:"Alain",tel:"0668777704",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"DURONT",prenom:"Daniel",tel:"0609131214",jours:"Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"FERRAND",prenom:"Herve",tel:"0632280781",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"FIEVET",prenom:"Alexis",tel:"0685163563",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"EZANO",prenom:"Lucie",tel:"Non renseigné",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"GORNIEL",prenom:"Robert",tel:"0632757302",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"GUILLOT",prenom:"Bernard",tel:"0660204390",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"HELLO",prenom:"Patrick",tel:"0611303134",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"HAUTOT",prenom:"Christophe",tel:"0661124974",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"JEAN",prenom:"Alain",tel:"0680203654",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"JACOBS",prenom:"Maarten",tel:"0671784940",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"JEGOUZO",prenom:"Franck",tel:"0663476262",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE DOZE",prenom:"Morgan",tel:"0603238398",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE CHEVILLER",prenom:"Jean francois",tel:"0678112734",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE SAGER",prenom:"Michele",tel:"0682461471",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE GAL",prenom:"Philipe",tel:"0769739704",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE GAL",prenom:"Yoan",tel:"0625527333",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE DAIN",prenom:"Henri",tel:"0631766437",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LARTIGUE",prenom:"Veronique",tel:"0629951182",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE BRAS",prenom:"Franck",tel:"0642554709",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE PALLEC",prenom:"Marc",tel:"0686017950",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE PALLEC",prenom:"Danielle",tel:"0699665692",jours:"Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE FLOCH",prenom:"Anais",tel:"Non renseigné",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE ROUX",prenom:"Sandrine",tel:"0607248011",jours:"Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE HELLAYE",prenom:"Marcel",tel:"0648475787",jours:"Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE BOUVIER",prenom:"Gael",tel:"0687823901",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"MAGNONE",prenom:"Serge",tel:"0749087147",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"POURCEL",prenom:"Romain",tel:"0613255651",jours:"Samedi/Dimanche",fonction:"Organisateur 🧑‍💼",lieu:"Mobile sur l'ensemble du parcours",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!0},{nom:"PIGNARD",prenom:"Regis",tel:"0782647373",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"PIGNARD",prenom:"Dominique",tel:"Non renseigné",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"PIGNARD",prenom:"Laurence",tel:"Non renseigné",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"RAUD",prenom:"Christian",tel:"0611855998",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"RAUD",prenom:"Chantale",tel:"Non renseigné",jours:"Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"ROUSSEAU",prenom:"Olivier",tel:"0673874437",jours:"Samedi/Dimanche",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"VELLY",prenom:"Patrick",tel:"Non renseigné",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LE QUELLENEC",prenom:"Claude",tel:"0769511906",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1},{nom:"LO",prenom:"André",tel:"Non renseigné",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1}]}
-            function loadBenevolesData(){const e=localStorage.getItem(benevolesLocalStorageKey);e&&JSON.parse(e).length>0?data=JSON.parse(e):initializeDefaultBenevoles()}
-            function saveBenevolesData(e=!1){localStorage.setItem(benevolesLocalStorageKey,JSON.stringify(data));if(e){const t=document.getElementById("save-message");t.textContent="Données sauvegardées !",t.classList.add("show"),setTimeout(()=>{t.classList.remove("show")},3e3)}}
+            
+            const benevolesCollection = collection(db, `artifacts/${appId}/public/data/benevoles`);
+            onSnapshot(benevolesCollection, (snapshot) => {
+                data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderBenevolesTable();
+            });
+
+            async function saveBenevolesData() {
+                const batch = writeBatch(db);
+                data.forEach(benevole => {
+                    const { id, ...benevoleData } = benevole;
+                    const docRef = doc(db, `artifacts/${appId}/public/data/benevoles`, id);
+                    batch.update(docRef, benevoleData);
+                });
+                await batch.commit();
+                const saveMessage = document.getElementById("save-message");
+                saveMessage.textContent="Données sauvegardées !";
+                saveMessage.classList.add("show");
+                setTimeout(() => { saveMessage.classList.remove("show") }, 3000);
+            }
+            
             function updateAccessFromBenevole(benevole, newRole) {
-                const existingUserIndex = utilisateursAutorises.findIndex(u => u.tel === benevole.tel);
+                const existingUser = utilisateursAutorises.find(u => u.tel === benevole.tel);
                 if (newRole === 'Aucun accès') {
-                    if (existingUserIndex > -1) utilisateursAutorises.splice(existingUserIndex, 1);
+                    if (existingUser) {
+                        deleteDoc(doc(db, `artifacts/${appId}/public/data/users`, existingUser.id));
+                    }
                 } else {
-                    if (existingUserIndex > -1) {
-                        utilisateursAutorises[existingUserIndex].role = newRole;
+                    if (existingUser) {
+                        updateDoc(doc(db, `artifacts/${appId}/public/data/users`, existingUser.id), { role: newRole });
                     } else {
-                        utilisateursAutorises.push({ nom: benevole.nom, prenom: benevole.prenom, tel: benevole.tel, role: newRole });
+                        addDoc(collection(db, `artifacts/${appId}/public/data/users`), { 
+                            nom: benevole.nom, 
+                            prenom: benevole.prenom, 
+                            tel: benevole.tel, 
+                            role: newRole 
+                        });
                     }
                 }
-                saveAccessData();
-                if (isSuperAdmin) renderAccessTable();
             }
-            function createBenevoleSelect(e,t,n,o){const l=document.createElement("select");l.className="py-1 px-2 border-gray-200 rounded-md shadow-sm text-sm w-full";return e.forEach(e=>{const n=document.createElement("option");n.value=e,n.textContent=e,e===t&&(n.selected=!0),l.appendChild(n)}),l.addEventListener("change",()=>{if("role"===o){const e=data[n];e&&updateAccessFromBenevole(e,l.value)}else data[n][o]=l.value}),l}
+
+            function createBenevoleSelect(options, currentValue, personIndex, property) {
+                const select = document.createElement("select");
+                select.className = "py-1 px-2 border-gray-200 rounded-md shadow-sm text-sm w-full";
+                
+                options.forEach(optionValue => {
+                    const option = document.createElement("option");
+                    option.value = optionValue;
+                    option.textContent = optionValue;
+                    if (optionValue === currentValue) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+                
+                select.addEventListener("change", () => {
+                    if (property === "role") {
+                        const benevole = data[personIndex];
+                        if (benevole) {
+                            updateAccessFromBenevole(benevole, select.value);
+                        }
+                    } else {
+                        data[personIndex][property] = select.value;
+                    }
+                });
+                
+                return select;
+            }
+
             function renderBenevolesTable() {
                 const filterValue = filterInput.value.toLowerCase();
                 const missingInfoOnly = filterMissingInfoCheckbox.checked;
@@ -307,8 +439,8 @@
 
                 tableBody.innerHTML = "";
 
-                dataToRender.forEach((person, index) => {
-                    const personIndex = data.findIndex(p => p.tel === person.tel && p.nom === person.nom);
+                dataToRender.forEach((person) => {
+                    const personIndex = data.findIndex(p => p.id === person.id);
                     const row = document.createElement('tr');
 
                     row.innerHTML = `
@@ -320,7 +452,7 @@
                         <td class="px-4 py-3"></td>
                         <td data-column="zello" class="px-4 py-3 text-center"><input type="checkbox" ${person.zello ? "checked" : ""} class="h-4 w-4 text-blue-600 rounded"></td>
                         <td data-column="acces" class="px-4 py-3"></td>
-                        <td class="px-4 py-3 text-center"><button data-index="${personIndex}" class="delete-benevole-btn text-red-500 hover:text-red-700 text-xs">Supprimer</button></td>
+                        <td class="px-4 py-3 text-center"><button data-id="${person.id}" class="delete-benevole-btn text-red-500 hover:text-red-700 text-xs">Supprimer</button></td>
                     `;
 
                     row.querySelector('input[type="text"]').onchange = (e) => { const [nom, ...prenomParts] = e.target.value.split(' '); data[personIndex].nom = nom.toUpperCase(); data[personIndex].prenom = prenomParts.join(' '); };
@@ -362,18 +494,14 @@
                 });
                 document.querySelectorAll('.delete-benevole-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        const index = e.target.dataset.index;
-                        const person = data[index];
+                        const personId = e.target.dataset.id;
+                        const person = data.find(p => p.id === personId);
                         if (confirm(`Êtes-vous sûr de vouloir supprimer ${person.prenom} ${person.nom} ?`)) {
-                            data.splice(index, 1);
-                            const accessIndex = utilisateursAutorises.findIndex(u => u.tel === person.tel);
-                            if (accessIndex > -1) {
-                                utilisateursAutorises.splice(accessIndex, 1);
-                                saveAccessData();
-                                if(isSuperAdmin) renderAccessTable();
+                            deleteDoc(doc(db, `artifacts/${appId}/public/data/benevoles`, personId));
+                            const accessUser = utilisateursAutorises.find(u => u.tel === person.tel);
+                            if (accessUser) {
+                                deleteDoc(doc(db, `artifacts/${appId}/public/data/users`, accessUser.id));
                             }
-                            saveBenevolesData(true);
-                            renderBenevolesTable();
                         }
                     });
                 });
@@ -382,27 +510,178 @@
                 toggleTelColumn();
                 setupBenevolePermissions();
             }
-            function updateMaterialSummary(){let e=0,t=0,n=0,o=0;data.forEach(l=>{l.materiel.Radio&&l.materiel.Radio.distribue&&e++,l.materiel.Radio&&l.materiel.Radio.restitue&&t++,l.materiel.Sifflet&&l.materiel.Sifflet.distribue&&n++,l.materiel.Sifflet&&l.materiel.Sifflet.restitue&&o++});const l=e-t,a=n-o;document.getElementById("radios-distribuees").textContent=e,document.getElementById("radios-restituees").textContent=t,document.getElementById("radios-manquantes").textContent=l,document.getElementById("sifflets-distribues").textContent=n,document.getElementById("sifflets-restitues").textContent=o,document.getElementById("sifflets-manquants").textContent=a,document.getElementById("appareils-manquants").textContent=l+a}
-            function toggleTelColumn(){const e=toggleTelCheckbox.checked,t=document.querySelector('th[data-column="tel"]'),n=document.querySelectorAll('td[data-column="tel"]');if(t)t.style.display=e?"none":"" ; n.forEach(t=>{t.style.display=e?"none":""})}
-            saveBtn.addEventListener('click',()=>saveBenevolesData(!0));
-            addBenevoleBtn.addEventListener('click',()=>document.getElementById('add-benevole-modal').style.display='flex');
-            closeModalBtn.addEventListener('click',()=>document.getElementById('add-benevole-modal').style.display='none');
-            addBenevoleForm.addEventListener('submit',e=>{e.preventDefault();const t={nom:document.getElementById("nom").value.toUpperCase(),prenom:document.getElementById("prenom").value,tel:document.getElementById("tel").value.replace(/\s/g,"")||"Non renseigné",jours:"Non renseigné",fonction:"À définir",lieu:"À définir",materiel:{Radio:{distribue:!1,restitue:!1},Sifflet:{distribue:!1,restitue:!1}},zello:!1};data.unshift(t),saveBenevolesData(!0),renderBenevolesTable(),document.getElementById('add-benevole-modal').style.display="none",addBenevoleForm.reset()});
-            filterInput.addEventListener('input',renderBenevolesTable);
+
+            function updateMaterialSummary() {
+                let radiosDistribues = 0, radiosRestitues = 0, siffletsDistribues = 0, siffletsRestitues = 0;
+                data.forEach(benevole => {
+                    if (benevole.materiel.Radio?.distribue) radiosDistribues++;
+                    if (benevole.materiel.Radio?.restitue) radiosRestitues++;
+                    if (benevole.materiel.Sifflet?.distribue) siffletsDistribues++;
+                    if (benevole.materiel.Sifflet?.restitue) siffletsRestitues++;
+                });
+                const radiosManquantes = radiosDistribues - radiosRestitues;
+                const siffletsManquants = siffletsDistribues - siffletsRestitues;
+
+                document.getElementById("radios-distribuees").textContent = radiosDistribues;
+                document.getElementById("radios-restituees").textContent = radiosRestitues;
+                document.getElementById("radios-manquantes").textContent = radiosManquantes;
+                document.getElementById("sifflets-distribues").textContent = siffletsDistribues;
+                document.getElementById("sifflets-restitues").textContent = siffletsRestitues;
+                document.getElementById("sifflets-manquants").textContent = siffletsManquants;
+                document.getElementById("appareils-manquants").textContent = radiosManquantes + siffletsManquants;
+            }
+
+            function toggleTelColumn(){
+                const isHidden = toggleTelCheckbox.checked;
+                const header = document.querySelector('th[data-column="tel"]');
+                const cells = document.querySelectorAll('td[data-column="tel"]');
+                if(header) header.style.display = isHidden ? "none" : "" ; 
+                cells.forEach(cell => { cell.style.display = isHidden ? "none": "" });
+            }
+
+            saveBtn.addEventListener('click', saveBenevolesData);
+            addBenevoleBtn.addEventListener('click', () => document.getElementById('add-benevole-modal').style.display='flex');
+            closeModalBtn.addEventListener('click', () => document.getElementById('add-benevole-modal').style.display='none');
+            addBenevoleForm.addEventListener('submit', async e => {
+                e.preventDefault();
+                const newBenevole = {
+                    nom: document.getElementById("nom").value.toUpperCase(),
+                    prenom: document.getElementById("prenom").value,
+                    tel: document.getElementById("tel").value.replace(/\s/g,"") || "Non renseigné",
+                    jours: "Non renseigné",
+                    fonction: "À définir",
+                    lieu: "À définir",
+                    materiel: { Radio: { distribue: false, restitue: false }, Sifflet: { distribue: false, restitue: false }},
+                    zello: false
+                };
+                await addDoc(collection(db, `artifacts/${appId}/public/data/benevoles`), newBenevole);
+                document.getElementById('add-benevole-modal').style.display = "none";
+                addBenevoleForm.reset();
+            });
+            filterInput.addEventListener('input', renderBenevolesTable);
             filterMissingInfoCheckbox.addEventListener('change', renderBenevolesTable);
-            toggleTelCheckbox.addEventListener('change',toggleTelColumn);
+            toggleTelCheckbox.addEventListener('change', toggleTelColumn);
 
             // =========================
             // CONCURRENTS & RACE LOGIC
             // =========================
-            let concurrents=[],concurrentsLocalStorageKey="concurrentsData",startTime,updatedTime,difference,tInterval,running=!1, currentManche = 1;
-            function initializeDefaultConcurrents(){concurrents=[{numero:1,nom:"Les Fous du Volant",isChild:false,manches:new Array(8).fill(null),meilleurTemps:null,documents:{dossier:!1,paiement:{ok:!1,montant:""},assurance:!1},equipements:!1,controle:"À vérifier"},{numero:2,nom:"Team Vroum",isChild:true,manches:new Array(8).fill(null),meilleurTemps:null,documents:{dossier:!1,paiement:{ok:!1,montant:""},assurance:!1},equipements:!1,controle:"À vérifier"}]}
-            function loadConcurrentsData(){const e=localStorage.getItem(concurrentsLocalStorageKey);e?concurrents=JSON.parse(e):initializeDefaultConcurrents()}
-            function saveConcurrentsData(){localStorage.setItem(concurrentsLocalStorageKey,JSON.stringify(concurrents)); saveConcurrentsMessage.classList.add('show'); setTimeout(() => { saveConcurrentsMessage.classList.remove('show'); }, 3000); }
-            function renderAllConcurrentsView(){renderConcurrentsAdminTable();renderRaceTable()}
-            function renderConcurrentsAdminTable(){concurrentsAdminBody.innerHTML="",concurrents.sort((e,t)=>e.numero-t.numero).forEach(e=>{const t=concurrents.findIndex(t=>t.numero===e.numero),n=document.createElement("tr");n.innerHTML=`<td class="px-4 py-3 text-sm">${e.numero}</td><td class="px-4 py-3 text-sm">${e.nom}</td><td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${e.numero}" data-doc="isChild" class="doc-check h-4 w-4 text-blue-600 rounded" ${e.isChild?"checked":""}></td><td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${e.numero}" data-doc="dossier" class="doc-check h-4 w-4 text-blue-600 rounded" ${e.documents.dossier?"checked":""}></td><td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${e.numero}" data-doc="assurance" class="doc-check h-4 w-4 text-blue-600 rounded" ${e.documents.assurance?"checked":""}></td><td class="px-4 py-3 text-center"><div class="flex items-center justify-center space-x-2"><input type="checkbox" data-numero="${e.numero}" data-doc="paiement" class="doc-check h-4 w-4 text-blue-600 rounded" ${e.documents.paiement.ok?"checked":""}><input type="text" placeholder="€" value="${e.documents.paiement.montant}" data-numero="${e.numero}" class="paiement-input text-sm"></div></td><td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${e.numero}" data-doc="equipements" class="doc-check h-4 w-4 text-blue-600 rounded" ${e.equipements?"checked":""}></td><td class="px-4 py-3"></td><td class="px-4 py-3 text-sm"><button data-numero="${e.numero}" class="delete-concurrent-btn text-red-500 hover:text-red-700 text-xs">Suppr.</button></td>`;const o=document.createElement("select");["À vérifier","Conforme","Non Conforme"].forEach(t=>{const n=document.createElement("option");n.value=t,n.textContent=t,e.controle===t&&(n.selected=!0),o.appendChild(n)}),o.value=e.controle,o.className=`controle-select rounded-md text-xs p-1 font-semibold ${"controle-"+e.controle.toLowerCase().replace(" ","").replace("é","e")}`,o.addEventListener("change",n=>{const o=concurrents[t];o&&(o.controle=n.target.value,n.target.className=`controle-select rounded-md text-xs p-1 font-semibold ${"controle-"+n.target.value.toLowerCase().replace(" ","").replace("é","e")}`)}),n.children[7].appendChild(o),concurrentsAdminBody.appendChild(n)});document.querySelectorAll(".delete-concurrent-btn").forEach(e=>e.addEventListener("click",e=>{const t=e.target.dataset.numero;confirm(`Supprimer le concurrent n°${t} ?`)&&(concurrents=concurrents.filter(e=>e.numero!=t),saveConcurrentsData(),renderAllConcurrentsView())})),document.querySelectorAll(".doc-check").forEach(e=>e.addEventListener("change",e=>{const t=e.target.dataset.numero,n=e.target.dataset.doc,o=concurrents.find(e=>e.numero==t);o&&("paiement"===n?o.documents.paiement.ok=e.target.checked:"equipements"===n?o.equipements=e.target.checked:"isChild"===n?o.isChild=e.target.checked:o.documents[n]=e.target.checked)})),document.querySelectorAll(".paiement-input").forEach(e=>e.addEventListener("input",t=>{const n=t.target.dataset.numero,o=concurrents.find(e=>e.numero==n);o&&(o.documents.paiement.montant=t.target.value)}))}
-            function formatTime(e){if(null===e||e===1/0||typeof e === 'undefined')return"-";const t=new Date(e);return`${String(t.getUTCMinutes()).padStart(2,"0")}:${String(t.getUTCSeconds()).padStart(2,"0")}:${String(t.getUTCMilliseconds()).padStart(3,"0").slice(0,2)}`}
-            function updateChrono(){updatedTime=(new Date).getTime(),difference=updatedTime-startTime,chronoDisplay.textContent=formatTime(difference)}
+            let concurrents = [], startTime, updatedTime, difference, tInterval, running = false, currentManche = 1;
+            
+            const concurrentsCollection = collection(db, `artifacts/${appId}/public/data/concurrents`);
+            onSnapshot(concurrentsCollection, (snapshot) => {
+                concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAllConcurrentsView();
+            });
+
+            async function saveConcurrentsData() {
+                const batch = writeBatch(db);
+                concurrents.forEach(concurrent => {
+                    const { id, ...concurData } = concurrent;
+                    const docRef = doc(db, `artifacts/${appId}/public/data/concurrents`, id);
+                    batch.update(docRef, concurData);
+                });
+                await batch.commit();
+                saveConcurrentsMessage.textContent = "Modifications sauvegardées !";
+                saveConcurrentsMessage.classList.add('show');
+                setTimeout(() => { saveConcurrentsMessage.classList.remove('show'); }, 3000);
+            }
+
+            function renderAllConcurrentsView() {
+                renderConcurrentsAdminTable();
+                renderRaceTable();
+            }
+
+            function renderConcurrentsAdminTable() {
+                concurrentsAdminBody.innerHTML = "";
+                concurrents.sort((a, b) => a.numero - b.numero).forEach(concurrent => {
+                    const concurrentIndex = concurrents.findIndex(c => c.numero === concurrent.numero);
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td class="px-4 py-3 text-sm">${concurrent.numero}</td>
+                        <td class="px-4 py-3 text-sm">${concurrent.nom}</td>
+                        <td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${concurrent.numero}" data-prop="isChild" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.isChild ? "checked" : ""}></td>
+                        <td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${concurrent.numero}" data-prop="documents.dossier" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.documents.dossier ? "checked" : ""}></td>
+                        <td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${concurrent.numero}" data-prop="documents.assurance" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.documents.assurance ? "checked" : ""}></td>
+                        <td class="px-4 py-3 text-center">
+                            <div class="flex items-center justify-center space-x-2">
+                                <input type="checkbox" data-numero="${concurrent.numero}" data-prop="documents.paiement.ok" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.documents.paiement.ok ? "checked" : ""}>
+                                <input type="text" placeholder="€" value="${concurrent.documents.paiement.montant}" data-numero="${concurrent.numero}" class="paiement-input text-sm">
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${concurrent.numero}" data-prop="equipements" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.equipements ? "checked" : ""}></td>
+                        <td class="px-4 py-3"></td>
+                        <td class="px-4 py-3 text-sm"><button data-id="${concurrent.id}" class="delete-concurrent-btn text-red-500 hover:text-red-700 text-xs">Suppr.</button></td>
+                    `;
+            
+                    const select = document.createElement("select");
+                    ["À vérifier", "Conforme", "Non Conforme"].forEach(status => {
+                        const option = document.createElement("option");
+                        option.value = status;
+                        option.textContent = status;
+                        if (concurrent.controle === status) option.selected = true;
+                        select.appendChild(option);
+                    });
+            
+                    const getSelectClass = (status) => `controle-select rounded-md text-xs p-1 font-semibold controle-${status.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '')}`;
+                    select.className = getSelectClass(concurrent.controle);
+            
+                    select.addEventListener("change", (event) => {
+                        const targetConcurrent = concurrents[concurrentIndex];
+                        if (targetConcurrent) {
+                            targetConcurrent.controle = event.target.value;
+                            event.target.className = getSelectClass(event.target.value);
+                        }
+                    });
+            
+                    row.children[7].appendChild(select);
+                    concurrentsAdminBody.appendChild(row);
+                });
+            
+                document.querySelectorAll(".delete-concurrent-btn").forEach(btn => btn.addEventListener("click", event => {
+                    const docId = event.target.dataset.id;
+                    if (confirm(`Supprimer ce concurrent ?`)) {
+                         deleteDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, docId));
+                    }
+                }));
+            
+                document.querySelectorAll(".doc-check").forEach(checkbox => checkbox.addEventListener("change", event => {
+                    const numero = event.target.dataset.numero;
+                    const propPath = event.target.dataset.prop;
+                    const targetConcurrent = concurrents.find(c => c.numero == numero);
+                    if (targetConcurrent) {
+                        const props = propPath.split('.');
+                        let current = targetConcurrent;
+                        for (let i = 0; i < props.length - 1; i++) {
+                            current = current[props[i]];
+                        }
+                        current[props[props.length - 1]] = event.target.checked;
+                    }
+                }));
+            
+                document.querySelectorAll(".paiement-input").forEach(input => input.addEventListener("input", event => {
+                    const numero = event.target.dataset.numero;
+                    const targetConcurrent = concurrents.find(c => c.numero == numero);
+                    if (targetConcurrent) {
+                        targetConcurrent.documents.paiement.montant = event.target.value;
+                    }
+                }));
+            }
+
+            function formatTime(timeInMillis) {
+                if (timeInMillis === null || timeInMillis === Infinity || typeof timeInMillis === 'undefined') return "-";
+                const date = new Date(timeInMillis);
+                const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+                const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+                const centiseconds = String(date.getUTCMilliseconds()).padStart(3, "0").slice(0, 2);
+                return `${minutes}:${seconds}:${centiseconds}`;
+            }
+            
+            function updateChronoDisplay() {
+                updatedTime = new Date().getTime();
+                difference = updatedTime - startTime;
+                chronoDisplay.textContent = formatTime(difference);
+            }
+
             function updateChronoButtons() {
                 const concurrentSelected = !!concurrentSelect.value;
                 const canStart = isSuperAdmin || currentUser.role === 'Organisation' || currentUser.role === 'Chrono Départ';
@@ -413,18 +692,82 @@
                 stopBtn.disabled = !canStop || !running;
                 resetBtn.disabled = !canReset || running;
             }
-            function startTimer(){ if(running) return; startTime=(new Date).getTime()-(difference||0),tInterval=setInterval(updateChrono,10),running=!0,updateChronoButtons() }
-            function stopTimer(){ if(!running) return; clearInterval(tInterval),running=!1,saveTimer(),updateChronoButtons() }
-            function resetTimer(){clearInterval(tInterval),running=!1,difference=0,chronoDisplay.textContent="00:00:00",updateChronoButtons()}
-            function saveTimer(){if(!difference)return;const e=concurrentSelect.value;if(e){const t=concurrents.find(t=>t.numero==e);if(t){t.manches[currentManche-1]=difference,saveConcurrentsData(),renderAllConcurrentsView(),resetTimer()}else alert("Concurrent non trouvé.")}else alert("Veuillez sélectionner un concurrent.")}
-            function startNewHeat() { if (confirm("Êtes-vous sûr de vouloir passer à la manche suivante ?")) { if(currentManche < 8) currentManche++; renderRaceTable(); } else { alert("Nombre maximum de manches atteint."); } }
-            function resetRace() { if(isSuperAdmin && confirm("ACTION IRRÉVERSIBLE\n\nÊtes-vous sûr de vouloir réinitialiser TOUTE la course ? Tous les temps de tous les concurrents seront effacés.")) { concurrents.forEach(c => { c.manches = new Array(8).fill(null); c.meilleurTemps = null; c.tempsTotal = null; }); currentManche = 1; saveConcurrentsData(); renderAllConcurrentsView(); } }
+
+            function startTimer() {
+                if (running) return;
+                startTime = new Date().getTime() - (difference || 0);
+                tInterval = setInterval(updateChronoDisplay, 10);
+                running = true;
+                updateChronoButtons();
+            }
+
+            function stopTimer() {
+                if (!running) return;
+                clearInterval(tInterval);
+                running = false;
+                saveTimer();
+                updateChronoButtons();
+            }
+
+            function resetTimer() {
+                clearInterval(tInterval);
+                running = false;
+                difference = 0;
+                chronoDisplay.textContent = "00:00:00";
+                updateChronoButtons();
+            }
+
+            async function saveTimer() {
+                if (!difference) return;
+                const concurrentNumero = concurrentSelect.value;
+                if (concurrentNumero) {
+                    const concurrent = concurrents.find(c => c.numero == concurrentNumero);
+                    if (concurrent) {
+                        const manches = concurrent.manches;
+                        manches[currentManche - 1] = difference;
+                        await updateDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, concurrent.id), { manches: manches });
+                        resetTimer();
+                    } else {
+                        alert("Concurrent non trouvé.");
+                    }
+                } else {
+                    alert("Veuillez sélectionner un concurrent.");
+                }
+            }
+            
+            function startNewHeat() {
+                if (currentManche < 8) {
+                    if (confirm("Êtes-vous sûr de vouloir passer à la manche suivante ?")) {
+                        currentManche++;
+                        renderRaceTable();
+                    }
+                } else {
+                    alert("Nombre maximum de manches atteint.");
+                }
+            }
+
+            async function resetRace() {
+                if(isSuperAdmin && confirm("ACTION IRRÉVERSIBLE\n\nÊtes-vous sûr de vouloir réinitialiser TOUTE la course ? Tous les temps de tous les concurrents seront effacés.")) {
+                    const batch = writeBatch(db);
+                    concurrents.forEach(c => {
+                        const docRef = doc(db, `artifacts/${appId}/public/data/concurrents`, c.id);
+                        batch.update(docRef, { 
+                            manches: new Array(8).fill(null), 
+                            meilleurTemps: null, 
+                            tempsTotal: null 
+                        });
+                    });
+                    await batch.commit();
+                    currentManche = 1;
+                }
+            }
+
             function renderRaceTable(){
                 const headers = ['Cl.', 'N°', 'Concurrent', ...Array.from({length: 8}, (_, i) => i < 2 ? `Test ${i+1}` : `Course ${i-1}`), 'Temps Total', 'Meilleur Temps'];
                 concurrentsTableHead.innerHTML = `<tr>${headers.map((h, i) => `<th class="px-4 py-3 text-left text-xs font-bold uppercase ${i===0?'rounded-tl-xl':''} ${i===headers.length-1?'rounded-tr-xl':''}">${h}</th>`).join('')}</tr>`;
 
                 concurrents.forEach(c => {
-                    const officialRuns = c.manches.slice(2).filter(t => t);
+                    const officialRuns = c.manches.slice(2).filter(t => t !== null);
                     c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
                     c.tempsTotal = officialRuns.length > 0 ? officialRuns.reduce((a, b) => a + b, 0) : null;
                 });
@@ -436,19 +779,34 @@
                 });
                 
                 raceConcurrentsTableBody.innerHTML="";
-                concurrents.forEach((e,t)=>{
-                    const n=document.createElement("tr"),o=null!==e.meilleurTemps?t+1:"-";
-                    let rowHtml = `<td class="px-4 py-3 text-sm font-bold">${o}</td><td class="px-4 py-3 text-sm">${e.numero}</td><td class="px-4 py-3 text-sm">${e.nom} ${e.isChild ? '🧒' : ''}</td>`;
-                    for(let i=0; i<8; i++){ rowHtml += `<td class="px-4 py-3 text-sm">${formatTime(e.manches[i])}</td>`; }
-                    rowHtml += `<td class="px-4 py-3 text-sm font-bold">${formatTime(e.tempsTotal)}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(e.meilleurTemps)}</td>`;
-                    n.innerHTML = rowHtml;
-                    raceConcurrentsTableBody.appendChild(n);
+                concurrents.forEach((concurrent, index)=>{
+                    const row = document.createElement("tr");
+                    const classement = concurrent.meilleurTemps !== null ? index + 1 : "-";
+                    let rowHtml = `<td class="px-4 py-3 text-sm font-bold">${classement}</td><td class="px-4 py-3 text-sm">${concurrent.numero}</td><td class="px-4 py-3 text-sm">${concurrent.nom} ${concurrent.isChild ? '🧒' : ''}</td>`;
+                    for(let i=0; i<8; i++){ 
+                        rowHtml += `<td class="px-4 py-3 text-sm">${formatTime(concurrent.manches[i])}</td>`; 
+                    }
+                    rowHtml += `<td class="px-4 py-3 text-sm font-bold">${formatTime(concurrent.tempsTotal)}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(concurrent.meilleurTemps)}</td>`;
+                    row.innerHTML = rowHtml;
+                    raceConcurrentsTableBody.appendChild(row);
                 });
                 
                 currentMancheDisplay.textContent = currentManche <= 2 ? `Test ${currentManche}` : `Course ${currentManche - 2}`;
                 populateConcurrentSelect();
             }
-            function populateConcurrentSelect(){const e=concurrentSelect.value;concurrentSelect.innerHTML='<option value="">-- Choisir un concurrent --</option>',concurrents.sort((e,t)=>e.numero-t.numero).forEach(e=>{const t=document.createElement("option");t.value=e.numero,t.textContent=`N°${e.numero} - ${e.nom}`,concurrentSelect.appendChild(t)}),concurrentSelect.value=e}
+
+            function populateConcurrentSelect() {
+                const selectedValue = concurrentSelect.value;
+                concurrentSelect.innerHTML = '<option value="">-- Choisir un concurrent --</option>';
+                concurrents.sort((a, b) => a.numero - b.numero).forEach(concurrent => {
+                    const option = document.createElement("option");
+                    option.value = concurrent.numero;
+                    option.textContent = `N°${concurrent.numero} - ${concurrent.nom}`;
+                    concurrentSelect.appendChild(option);
+                });
+                concurrentSelect.value = selectedValue;
+            }
+
             function showGrid(type) {
                 const title = document.getElementById("grid-title");
                 const gridHead = document.querySelector("#grid-table thead");
@@ -468,7 +826,7 @@
                     const prevMancheName = prevMancheIndex < 2 ? `Test ${prevMancheIndex + 1}` : `Course ${prevMancheIndex - 1}`;
                     title.textContent = `Classement - ${prevMancheName}`;
                     gridHead.innerHTML = `<tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">N°</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Temps ${prevMancheName}</th></tr>`;
-                    const ranked = [...concurrents].filter(c => c.manches[prevMancheIndex]).sort((a,b) => a.manches[prevMancheIndex] - b.manches[prevMancheIndex]);
+                    const ranked = [...concurrents].filter(c => c.manches[prevMancheIndex] !== null).sort((a,b) => a.manches[prevMancheIndex] - b.manches[prevMancheIndex]);
                      ranked.forEach((c, i) => {
                         gridBody.innerHTML += `<tr><td class="px-4 py-3 text-sm font-bold">${i+1}</td><td class="px-4 py-3 text-sm">${c.numero}</td><td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.manches[prevMancheIndex])}</td></tr>`;
                     });
@@ -481,7 +839,7 @@
             newHeatBtn.addEventListener('click', startNewHeat);
             resetRaceBtn.addEventListener('click', resetRace);
             saveConcurrentsBtn.addEventListener('click', saveConcurrentsData);
-            addConcurrentFormAdmin.addEventListener('submit',e=>{e.preventDefault();const t=document.getElementById("concurrent-numero").value,n=document.getElementById("concurrent-nom").value, o=document.getElementById("concurrent-enfant").checked;if(concurrents.some(e=>e.numero==t)){alert("Ce numéro de concurrent existe déjà.");return}concurrents.push({numero:parseInt(t),nom:n, isChild: o, manches:new Array(8).fill(null),meilleurTemps:null,documents:{dossier:!1,paiement:{ok:!1,montant:""},assurance:!1},equipements:!1,controle:"À vérifier"}),addConcurrentFormAdmin.reset(),saveConcurrentsData(),renderAllConcurrentsView()});
+            addConcurrentFormAdmin.addEventListener('submit', async e=>{e.preventDefault();const numero = document.getElementById("concurrent-numero").value, nom = document.getElementById("concurrent-nom").value, isChild = document.getElementById("concurrent-enfant").checked;if(concurrents.some(c=>c.numero==numero)){alert("Ce numéro de concurrent existe déjà.");return}await addDoc(collection(db, `artifacts/${appId}/public/data/concurrents`),{numero:parseInt(numero),nom:nom, isChild: isChild, manches:new Array(8).fill(null),meilleurTemps:null,tempsTotal:null,documents:{dossier:!1,paiement:{ok:!1,montant:""},assurance:!1},equipements:!1,controle:"À vérifier"}),addConcurrentFormAdmin.reset()});
             concurrentSelect.addEventListener("change",updateChronoButtons);
             previousHeatBtn.addEventListener('click', () => showGrid('previous'));
             podiumBtn.addEventListener('click', () => showGrid('podium'));
@@ -490,9 +848,52 @@
             // =========================
             // ACCESS LOGIC & INIT
             // =========================
-            function renderAccessTable(){accessTableBody.innerHTML="",utilisateursAutorises.forEach((e,t)=>{const n=document.createElement("tr");n.innerHTML=`<td class="px-4 py-3 text-sm text-gray-800">${e.prenom} ${e.nom}</td><td class="px-4 py-3 text-sm text-gray-500">${e.tel}</td><td class="px-4 py-3 text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${["Organisation","Chrono Départ", "Chrono Arrivée"].includes(e.role)?"bg-blue-100 text-blue-800":"bg-gray-100 text-gray-800"}">${e.role}</span></td><td class="px-4 py-3 text-sm text-gray-500"><button data-index="${t}" class="delete-user-btn text-red-500 hover:text-red-700">Supprimer</button></td>`,accessTableBody.appendChild(n)}),document.querySelectorAll(".delete-user-btn").forEach(e=>{e.addEventListener("click",e=>{const n=parseInt(e.target.dataset.index,10),o=utilisateursAutorises[n];if(isSuperAdmin&&1===utilisateursAutorises.filter(e=>"Organisation"===e.role).length&&"Organisation"===o.role)return void alert("Action impossible : vous ne pouvez pas supprimer le dernier organisateur.");confirm(`Êtes-vous sûr de vouloir supprimer ${o.prenom} ${o.nom} ?`)&&(utilisateursAutorises.splice(n,1),saveAccessData(),renderAccessTable())})})}
-            addUserForm.addEventListener('submit',e=>{e.preventDefault();const t={nom:document.getElementById("user-nom").value.trim().toUpperCase(),prenom:document.getElementById("user-prenom").value.trim(),tel:document.getElementById("user-tel").value.replace(/\s/g,""),role:document.getElementById("user-role").value};if(utilisateursAutorises.some(e=>e.tel===t.tel))return void alert("Un utilisateur avec ce numéro de téléphone existe déjà.");utilisateursAutorises.push(t),saveAccessData(),renderAccessTable(),addUserForm.reset()});
+            function renderAccessTable() {
+                accessTableBody.innerHTML = "";
+                utilisateursAutorises.forEach(user => {
+                    const row = document.createElement("tr");
+                    const roleClass = ["Organisation", "Chrono Départ", "Chrono Arrivée"].includes(user.role) ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800";
+                    row.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-800">${user.prenom} ${user.nom}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${user.tel}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleClass}">${user.role}</span></td>
+                        <td class="px-4 py-3 text-sm text-gray-500"><button data-id="${user.id}" class="delete-user-btn text-red-500 hover:text-red-700">Supprimer</button></td>
+                    `;
+                    accessTableBody.appendChild(row);
+                });
             
+                document.querySelectorAll(".delete-user-btn").forEach(btn => {
+                    btn.addEventListener("click", event => {
+                        const userId = event.target.dataset.id;
+                        const user = utilisateursAutorises.find(u => u.id === userId);
+                        if (isSuperAdmin && utilisateursAutorises.filter(u => u.role === "Organisation").length === 1 && user.role === "Organisation") {
+                            alert("Action impossible : vous ne pouvez pas supprimer le dernier organisateur.");
+                            return;
+                        }
+                        if (confirm(`Êtes-vous sûr de vouloir supprimer ${user.prenom} ${user.nom} ?`)) {
+                             deleteDoc(doc(db, `artifacts/${appId}/public/data/users`, userId));
+                        }
+                    });
+                });
+            }
+
+            addUserForm.addEventListener('submit', async e=>{
+                e.preventDefault();
+                const newUser = {
+                    nom: document.getElementById("user-nom").value.trim().toUpperCase(),
+                    prenom: document.getElementById("user-prenom").value.trim(),
+                    tel: document.getElementById("user-tel").value.replace(/\s/g, ""),
+                    role: document.getElementById("user-role").value
+                };
+                if (utilisateursAutorises.some(u => u.tel === newUser.tel)) {
+                    alert("Un utilisateur avec ce numéro de téléphone existe déjà.");
+                    return;
+                }
+                await addDoc(collection(db, `artifacts/${appId}/public/data/users`), newUser);
+                addUserForm.reset();
+            });
+            
+
             // =========================
             // PERMISSIONS & FINAL SETUP
             // =========================
@@ -550,6 +951,7 @@
                 const canEditConcurrents = isSuperAdmin || role === 'Organisation';
                 const canSeeChronoAndPodium = isSuperAdmin || role === 'Organisation' || role === 'Chrono Départ' || role === 'Chrono Arrivée';
                 const isAlexisFievet = currentUser.nom === 'FIEVET' && currentUser.prenom === 'Alexis';
+                const canImportExport = isSuperAdmin || role === 'Organisation';
 
                 if (!canEditBenevoles) {
                     document.getElementById('add-benevole-btn').style.display = 'none';
@@ -563,6 +965,11 @@
                 
                 if (!isSuperAdmin) {
                     resetRaceBtn.style.display = 'none';
+                }
+
+                if (!canImportExport) {
+                    importBtn.style.display = 'none';
+                    exportBtn.style.display = 'none';
                 }
 
                 const canStartHeat = isSuperAdmin || role === 'Organisation' || role === 'Chrono Départ';
@@ -603,13 +1010,18 @@
                 });
             });
 
-            // Import / Export
-            exportBtn.addEventListener('click', () => {
+            // Import / Export Logic
+            exportBtn.addEventListener('click', async () => {
+                const benevolesSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/benevoles`));
+                const concurrentsSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/concurrents`));
+                const usersSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/users`));
+
                 const dataToExport = {
-                    benevoles: data,
-                    concurrents: concurrents,
-                    utilisateurs: utilisateursAutorises
+                    benevoles: benevolesSnapshot.docs.map(doc => doc.data()),
+                    concurrents: concurrentsSnapshot.docs.map(doc => doc.data()),
+                    utilisateurs: usersSnapshot.docs.map(doc => doc.data())
                 };
+                
                 const dataStr = JSON.stringify(dataToExport, null, 2);
                 const dataBlob = new Blob([dataStr], {type: "application/json"});
                 const url = URL.createObjectURL(dataBlob);
@@ -623,30 +1035,49 @@
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
             });
+
             importBtn.addEventListener('click', () => importFile.click());
             importFile.addEventListener('change', (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
 
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = async function(e) {
                     try {
                         const imported = JSON.parse(e.target.result);
                         if (imported.benevoles && imported.concurrents && imported.utilisateurs) {
-                            if (confirm("Voulez-vous vraiment remplacer toutes les données actuelles par celles du fichier importé ? Cette action est irréversible.")) {
-                                data = imported.benevoles;
-                                concurrents = imported.concurrents;
-                                utilisateursAutorises = imported.utilisateurs;
-
-                                saveBenevolesData(false); 
-                                saveConcurrentsData();
-                                saveAccessData();
+                            if (confirm("Voulez-vous vraiment remplacer toutes les données actuelles par celles du fichier importé ? Cette action est irréversible et supprimera les données en ligne.")) {
                                 
-                                location.reload();
+                                // Clear existing data
+                                const collectionsToDelete = ['benevoles', 'concurrents', 'users'];
+                                for (const coll of collectionsToDelete) {
+                                    const snapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/${coll}`));
+                                    const deleteBatch = writeBatch(db);
+                                    snapshot.docs.forEach(doc => deleteBatch.delete(doc.ref));
+                                    await deleteBatch.commit();
+                                }
+
+                                // Import new data
+                                const importBatch = writeBatch(db);
+                                imported.benevoles.forEach(item => {
+                                    const docRef = doc(collection(db, `artifacts/${appId}/public/data/benevoles`));
+                                    importBatch.set(docRef, item);
+                                });
+                                imported.concurrents.forEach(item => {
+                                    const docRef = doc(collection(db, `artifacts/${appId}/public/data/concurrents`));
+                                    importBatch.set(docRef, item);
+                                });
+                                imported.utilisateurs.forEach(item => {
+                                    const docRef = doc(collection(db, `artifacts/${appId}/public/data/users`));
+                                    importBatch.set(docRef, item);
+                                });
+                                await importBatch.commit();
+                                
                                 alert("Données importées avec succès ! La page va se recharger.");
+                                location.reload();
                             }
                         } else {
-                            alert("Fichier invalide ou mal formaté.");
+                            alert("Fichier invalide ou mal formaté. Le fichier doit contenir les clés 'benevoles', 'concurrents' et 'utilisateurs'.");
                         }
                     } catch (error) {
                         alert("Erreur lors de la lecture du fichier. Assurez-vous que c'est un fichier de sauvegarde valide.");
@@ -657,16 +1088,25 @@
                 reader.readAsText(file);
             });
 
-            // Initial Load
-            loadBenevolesData();
-            renderBenevolesTable();
-            loadConcurrentsData();
-            renderAllConcurrentsView();
-            if (isSuperAdmin) { renderAccessTable(); }
+            // Initial Load Listeners
+            onSnapshot(collection(db, `artifacts/${appId}/public/data/benevoles`), (snapshot) => {
+                data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderBenevolesTable();
+            });
+            onSnapshot(collection(db, `artifacts/${appId}/public/data/concurrents`), (snapshot) => {
+                concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAllConcurrentsView();
+            });
+
+            if (isSuperAdmin) { 
+                onSnapshot(collection(db, `artifacts/${appId}/public/data/users`), (snapshot) => {
+                    utilisateursAutorises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderAccessTable();
+                });
+            }
             setupPermissions();
         }
-        document.addEventListener('DOMContentLoaded', loadAccessData);
+        document.addEventListener('DOMContentLoaded', authenticateAndStart);
     </script>
 </body>
 </html>
-
