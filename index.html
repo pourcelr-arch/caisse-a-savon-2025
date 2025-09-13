@@ -347,11 +347,11 @@
 
         loginForm.addEventListener('submit', (e) => { 
             e.preventDefault(); 
-            const nomInput = document.getElementById('login-nom').value.trim().toUpperCase();
+            const nomInput = document.getElementById('login-nom').value.trim();
             const prenomInput = document.getElementById('login-prenom').value.trim();
             const tel = document.getElementById('login-tel').value.replace(/\s/g, '');
 
-            const normalizedNomInput = removeAccents(nomInput);
+            const normalizedNomInput = removeAccents(nomInput.toUpperCase());
             const normalizedPrenomInput = removeAccents(prenomInput.toLowerCase());
             
             const foundUser = utilisateursAutorises.find(user => {
@@ -364,7 +364,8 @@
 
             if (foundUser) { 
                 currentUser = foundUser; 
-                isSuperAdmin = (currentUser.role === 'Super Admin') || (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651");
+                // Règle de sécurité pour garantir l'accès Super Admin.
+                isSuperAdmin = (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651");
                                
                 loginScreen.style.display = 'none'; 
                 mainApp.style.display = 'block'; 
