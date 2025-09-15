@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de bord caisse à savon gestion des bénévoles et du matériel</title>
+    <title>Application gestion course de caisses à savon</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -15,7 +15,7 @@
         .text-red-500 {
             color: #ef4444;
         }
-        #benevoles-table, #concurrents-table, #concurrents-admin-table {
+        #benevoles-table, #concurrents-table, #concurrents-admin-table, #access-table {
             table-layout: auto;
             width: max-content;
             min-width: 100%;
@@ -76,17 +76,22 @@
             cursor: pointer;
             color: #6b7280;
         }
-        #save-message, #save-concurrents-message {
+        #save-message, #save-concurrents-message, #save-access-message {
             opacity: 0;
             transition: opacity 0.5s ease-in-out;
         }
-        #save-message.show, #save-concurrents-message.show {
+        #save-message.show, #save-concurrents-message.show, #save-access-message.show {
             opacity: 1;
         }
         /* Styles pour les onglets */
         .tab-button.active {
             border-bottom-color: #3b82f6;
             color: #3b82f6;
+            font-weight: 600;
+        }
+        .admin-sub-tab-button.active {
+            border-bottom-color: #dc2626; /* red-600 */
+            color: #dc2626;
             font-weight: 600;
         }
         #chrono-display {
@@ -182,27 +187,56 @@
         
         <div class="mb-4 border-b border-gray-200">
             <nav class="flex space-x-4" aria-label="Tabs">
-                <button id="tab-dashboard" class="tab-button active py-4 px-1 border-b-2 font-medium text-sm">Bénévoles & Matériel</button>
-                <button id="tab-concurrents" class="tab-button py-4 px-1 border-b-2 font-medium text-sm">Concurrents</button>
-                <button id="tab-race" class="tab-button py-4 px-1 border-b-2 font-medium text-sm">Gestion Course</button>
-                <button id="tab-access" class="tab-button py-4 px-1 border-b-2 font-medium text-sm" style="display: none;">Gestion Accès</button>
+                <button id="tab-race" class="tab-button active py-4 px-1 border-b-2 font-medium text-sm">
+                    <span class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Chrono
+                    </span>
+                </button>
+                <button id="tab-concurrents" class="tab-button py-4 px-1 border-b-2 font-medium text-sm">
+                    <span class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Concurrents
+                    </span>
+                </button>
+                <button id="tab-dashboard" class="tab-button py-4 px-1 border-b-2 font-medium text-sm">
+                    <span class="flex items-center gap-2">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                         </svg>
+                         Bénévoles & Matériel
+                    </span>
+                </button>
+                <button id="tab-admin" class="tab-button py-4 px-1 border-b-2 font-medium text-sm text-red-600" style="display: none;">
+                    <span class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                           <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                           <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Administration
+                    </span>
+                </button>
             </nav>
         </div>
-
-        <div id="content-dashboard" class="tab-content">
-             <!-- Le contenu de l'onglet Bénévoles sera injecté ici par JS -->
+        
+        <div id="content-race" class="tab-content">
+             <!-- Le contenu de l'onglet Course sera injecté ici par JS -->
         </div>
 
         <div id="content-concurrents" class="tab-content" style="display: none;">
              <!-- Le contenu de l'onglet Concurrents sera injecté ici par JS -->
         </div>
         
-        <div id="content-race" class="tab-content" style="display: none;">
-             <!-- Le contenu de l'onglet Course sera injecté ici par JS -->
+        <div id="content-dashboard" class="tab-content" style="display: none;">
+             <!-- Le contenu de l'onglet Bénévoles sera injecté ici par JS -->
         </div>
 
-        <div id="content-access" class="tab-content" style="display: none;">
-             <!-- Le contenu de l'onglet Gestion Accès sera injecté ici par JS -->
+        <div id="content-admin" class="tab-content" style="display: none;">
+             <!-- Le contenu de l'onglet Administration sera injecté ici par JS -->
         </div>
         
     </div>
@@ -211,6 +245,28 @@
     <div id="add-benevole-modal" class="modal" style="display:none">
         <!-- Le contenu de la modale sera injecté ici par JS -->
     </div>
+
+    <!-- Modal pour ajouter/modifier un concurrent -->
+    <div id="add-concurrent-modal" class="modal" style="display:none">
+        <!-- Le contenu de la modale sera injecté ici par JS -->
+    </div>
+    
+    <!-- Modal for Race Time Confirmation -->
+    <div id="time-confirmation-modal" class="modal" style="display:none">
+        <div class="modal-content max-w-sm text-center">
+            <div class="modal-header justify-center">
+                <h2 class="text-2xl font-bold">Temps Enregistré !</h2>
+            </div>
+            <div class="my-6">
+                <p id="time-confirm-concurrent" class="text-xl font-semibold text-gray-800"></p>
+                <p id="time-confirm-time" class="text-6xl font-bold text-blue-600 font-mono my-4"></p>
+            </div>
+            <div class="flex justify-center">
+                <button id="close-time-confirm-modal-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-xl">OK</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Modal pour les crédits -->
     <div id="credits-modal" class="modal" style="display:none">
@@ -226,6 +282,36 @@
                 <p class="mt-4 pt-4 border-t border-gray-200 text-xs text-gray-500">
                     <em>Remarque : Ce fichier contient du code partiellement généré à l’aide d’un outil d’intelligence artificielle, puis revu et adapté manuellement.</em>
                 </p>
+            </div>
+        </div>
+    </div>
+
+     <!-- Modal pour le tutoriel -->
+    <div id="tutorial-modal" class="modal" style="display:none">
+        <div class="modal-content max-w-lg">
+            <div class="modal-header">
+                <h2>Bienvenue sur le Tableau de Bord !</h2>
+            </div>
+            <div class="space-y-4">
+                <p>C'est votre première connexion. Souhaitez-vous consulter un guide rapide pour prendre en main les fonctionnalités liées à votre rôle ?</p>
+                <div class="flex justify-end gap-4 pt-4">
+                    <button id="show-tutorial-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">Voir le tutoriel</button>
+                    <button id="close-tutorial-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-xl">Non, merci</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Confirmation -->
+    <div id="confirm-modal" class="modal" style="display:none">
+        <div class="modal-content max-w-sm">
+            <div class="modal-header">
+               <h2 id="confirm-modal-title" class="text-xl font-bold">Confirmation Requise</h2>
+            </div>
+            <p id="confirm-modal-text" class="text-gray-600 my-6"></p>
+            <div class="flex justify-end gap-4">
+                <button id="confirm-modal-cancel-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-xl">Annuler</button>
+                <button id="confirm-modal-confirm-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl">Confirmer</button>
             </div>
         </div>
     </div>
@@ -276,6 +362,7 @@
             try {
                 await signInAnonymously(auth);
                 await loadAccessData();
+                checkSavedLogin();
             } catch (error) {
                 console.error("Erreur d'authentification Firebase:", error);
                 
@@ -316,6 +403,24 @@
                 }
                 
                 errorMessageContainer.innerHTML = errorHtml;
+            }
+        }
+        
+        function checkSavedLogin() {
+            const savedUserStr = localStorage.getItem('currentUser');
+            if (savedUserStr) {
+                const savedUser = JSON.parse(savedUserStr);
+                 const foundUser = utilisateursAutorises.find(user => user.id === savedUser.id);
+                 if(foundUser){
+                    currentUser = foundUser;
+                    isSuperAdmin = (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651") || currentUser.role === 'Super Admin';
+                    loginScreen.style.display = 'none';
+                    mainApp.style.display = 'block';
+                    userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`;
+                    startAppLogic();
+                 } else {
+                    localStorage.removeItem('currentUser');
+                 }
             }
         }
 
@@ -364,48 +469,113 @@
 
             if (foundUser) { 
                 currentUser = foundUser; 
-                // Règle de sécurité pour garantir l'accès Super Admin.
-                isSuperAdmin = (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651");
+                isSuperAdmin = (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651") || currentUser.role === 'Super Admin';
                                
                 loginScreen.style.display = 'none'; 
                 mainApp.style.display = 'block'; 
                 userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`; 
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 startAppLogic(); 
+                showTutorialModalIfNeeded();
             } else { 
                 loginError.classList.remove('hidden'); 
             } 
         });
-        logoutBtn.addEventListener('click', () => { location.reload(); });
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('tutorialShown');
+            location.reload(); 
+        });
 
         // SECTION 2: LOGIQUE DE L'APPLICATION
         function startAppLogic() {
             let editingBenevoleId = null;
+            let editingConcurrentId = null;
+            let editingUserId = null;
+            let selectedConcurrentForChrono = null;
             
             const creditsButtonHTML = `<div class="text-center text-gray-400 text-xs my-2"><button class="credits-btn-trigger hover:underline text-blue-500">Application web créée Par</button></div>`;
 
+            // Confirmation Modal Logic
+            const confirmModal = document.getElementById('confirm-modal');
+            const confirmModalTitle = document.getElementById('confirm-modal-title');
+            const confirmModalText = document.getElementById('confirm-modal-text');
+            let confirmModalConfirmBtn = document.getElementById('confirm-modal-confirm-btn');
+            let confirmModalCancelBtn = document.getElementById('confirm-modal-cancel-btn');
+
+            function showConfirmationModal(text, onConfirm, title = "Confirmation Requise") {
+                confirmModalTitle.textContent = title;
+                confirmModalText.innerHTML = text;
+                confirmModal.style.display = 'flex';
+
+                let newConfirmBtn = confirmModalConfirmBtn.cloneNode(true);
+                confirmModalConfirmBtn.parentNode.replaceChild(newConfirmBtn, confirmModalConfirmBtn);
+                confirmModalConfirmBtn = newConfirmBtn;
+
+                let newCancelBtn = confirmModalCancelBtn.cloneNode(true);
+                confirmModalCancelBtn.parentNode.replaceChild(newCancelBtn, confirmModalCancelBtn);
+                confirmModalCancelBtn = newCancelBtn;
+
+                confirmModalConfirmBtn.onclick = () => {
+                    confirmModal.style.display = 'none';
+                    onConfirm();
+                };
+                confirmModalCancelBtn.onclick = () => {
+                    confirmModal.style.display = 'none';
+                };
+            }
+
             // -- Inject HTML content for tabs --
-            document.getElementById('content-dashboard').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-6"><h2 class="text-xl font-bold text-gray-800 mb-4">Suivi du matériel</h2><div class="mb-8 p-4 bg-yellow-50 rounded-xl shadow-inner border-l-4 border-yellow-400 flex flex-wrap justify-between items-center text-sm md:text-base"><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Radios:</span><span class="font-bold text-blue-600" id="radios-distribuees">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="radios-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquantes:</span><span class="font-bold text-lg text-red-500" id="radios-manquantes">0</span></div></div><div class="flex-grow"></div><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Sifflets:</span><span class="font-bold text-blue-600" id="sifflets-distribues">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="sifflets-restitues">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquants:</span><span class="font-bold text-lg text-red-500" id="sifflets-manquants">0</span></div></div><div class="flex-grow"></div><div class="flex items-center space-x-2 mt-4 md:mt-0"><span class="font-medium text-gray-700">Appareils manquants:</span><span class="font-bold text-2xl text-red-500" id="appareils-manquants">0</span></div></div><h2 class="text-xl font-bold text-gray-800 mb-4">Liste des bénévoles</h2><div class="flex flex-col lg:flex-row justify-between items-center mb-4 gap-4"><div class="flex flex-wrap items-end gap-4"><button id="add-benevole-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">+ Ajouter un bénévole</button></div><div class="w-full lg:w-auto flex-grow flex justify-center"><input type="text" id="filter-input" placeholder="Rechercher un bénévole..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full max-w-xs"></div><div class="flex items-center gap-4"><div class="flex items-center gap-2" id="missing-info-container"><input type="checkbox" id="filter-missing-info" class="form-checkbox h-4 w-4 text-red-600 rounded"><label for="filter-missing-info" class="text-sm font-medium text-gray-700 select-none">Infos manquantes ❌</label></div><div class="flex items-center gap-2"><input type="checkbox" id="toggleTel" class="form-checkbox h-4 w-4 text-blue-600 rounded"><label for="toggleTel" class="text-sm font-medium text-gray-700 select-none">Masquer Tél.</label></div><div class="flex items-center gap-2"><span id="save-message" class="text-green-600 font-bold"></span><button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table class="divide-y divide-gray-200" id="benevoles-table"><thead class="bg-gray-200 sticky top-0 z-10"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider rounded-tl-xl">Nom & Prénom</th><th data-column="tel" class="px-4 py-3 text-left text-xs font-bold uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Jours de présence</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Lieu d'affectation 📍</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Fonction 💼</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Matériel (D/R)</th><th data-column="zello" class="px-4 py-3 text-left text-xs font-bold uppercase">Zello 📻</th><th data-column="acces" class="px-4 py-3 text-left text-xs font-bold uppercase">Accès</th><th data-column="action" class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
-            document.getElementById('content-concurrents').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-6"><h2 class="text-xl font-bold text-gray-800 mb-2">Ajouter un Concurrent</h2><form id="add-concurrent-form" class="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200 flex flex-wrap items-end gap-3"><div class="flex-grow"><label for="concurrent-numero" class="block text-sm font-medium text-gray-700">N°</label><input type="number" id="concurrent-numero" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div class="flex-grow-[3]"><label for="concurrent-nom" class="block text-sm font-medium text-gray-700">Nom Concurrent / Équipe</label><input type="text" id="concurrent-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div class="flex items-center pt-6"><input type="checkbox" id="concurrent-enfant" class="h-4 w-4 text-blue-600 rounded mr-2"><label for="concurrent-enfant" class="text-sm font-medium text-gray-700">Enfant 🧒</label></div><button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button></form><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold text-gray-800">Liste des Concurrents</h2><div><span id="save-concurrents-message" class="text-green-600 font-bold mr-4"></span><button id="save-concurrents-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">Sauvegarder</button></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table id="concurrents-admin-table" class="divide-y divide-gray-200"><thead class="bg-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tl-xl">N°</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Concurrent</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Enfant</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Dossier Inscription</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Assurance</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Paiement Cotisation</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Équipements Sécurité</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Contrôle Tech.</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="concurrents-admin-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
-            document.getElementById('content-race').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-6"><div id="chrono-container" class="mb-6 p-6 bg-gray-50 rounded-2xl shadow-inner"><h2 class="text-xl font-bold text-gray-800 mb-4 text-center">Chronomètre (<span id="current-manche-display"></span>)</h2><div class="max-w-md mx-auto"><div class="mb-4"><label for="concurrent-select" class="block text-sm font-medium text-gray-700 mb-1">Concurrent au départ</label><select id="concurrent-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></select></div><div id="chrono-display" class="text-5xl font-bold text-center text-blue-600 bg-white p-4 rounded-xl mb-4 shadow">00:00:00</div><div class="grid grid-cols-2 gap-3 mt-auto"><button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Démarrer</button><button id="stop-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Arrêter et Enregistrer</button><button id="reset-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200 col-span-2">Réinitialiser</button></div></div></div><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold text-gray-800">Classement de la Course</h2><div class="flex items-center gap-2"><button id="reset-race-btn" class="bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded-xl transition duration-200 mr-2">Réinitialiser Course</button><button id="new-heat-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200 mr-2">Manche Suivante</button><button id="previous-heat-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200 mr-2">Temps Manche Précédente</button><button id="podium-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-xl transition duration-200">Podium</button></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table class="divide-y divide-gray-200" id="concurrents-table"><thead id="concurrents-table-head" class="bg-gray-200"></thead><tbody id="concurrents-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
-            document.getElementById('content-access').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-6"><h2 class="text-xl font-bold text-gray-800 mb-2">Gérer les utilisateurs autorisés</h2><p class="text-gray-600 mb-6 text-sm">Seuls les utilisateurs listés ici peuvent se connecter.</p><form id="add-user-form" class="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-wrap items-end gap-4"><div class="flex-grow"><label for="user-nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="user-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="user-prenom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" id="user-tel" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-role" class="block text-sm font-medium text-gray-700">Rôle</label><select id="user-role" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"><option value="Super Admin">Super Admin</option><option value="Organisation">Organisation</option><option value="Responsable Radio">Responsable Radio</option><option value="MAIRE">MAIRE</option><option value="Chrono Départ">Chrono Départ</option><option value="Chrono Arrivée">Chrono Arrivée</option><option value="Bénévole">Bénévole</option><option value="Concurrent">Concurrent</option></select></div><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button></form><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-100"><tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Nom Prénom</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Rôle</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th></tr></thead><tbody id="access-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
+            document.getElementById('content-dashboard').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-6"><h2 class="text-xl font-bold text-gray-800 mb-4">Suivi du matériel</h2><div class="mb-8 p-4 bg-yellow-50 rounded-xl shadow-inner border-l-4 border-yellow-400 flex flex-wrap justify-between items-center text-sm md:text-base"><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Radios:</span><span class="font-bold text-blue-600" id="radios-distribuees">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="radios-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquantes:</span><span class="font-bold text-lg text-red-500" id="radios-manquantes">0</span></div></div><div class="flex-grow"></div><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Sifflets:</span><span class="font-bold text-blue-600" id="sifflets-distribues">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="sifflets-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquants:</span><span class="font-bold text-lg text-red-500" id="sifflets-manquants">0</span></div></div><div class="flex-grow"></div><div class="flex items-center space-x-2 mt-4 md:mt-0"><span class="font-medium text-gray-700">Appareils manquants:</span><span class="font-bold text-2xl text-red-500" id="appareils-manquants">0</span></div></div><h2 class="text-xl font-bold text-gray-800 mb-4">Liste des bénévoles</h2><div class="flex flex-col lg:flex-row justify-between items-center mb-4 gap-4"><div class="flex flex-wrap items-end gap-4"><button id="add-benevole-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">+ Ajouter</button></div><div class="w-full lg:w-auto flex-grow flex justify-center items-center gap-2"><input type="text" id="filter-input" placeholder="Rechercher par nom..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full max-w-xs"><select id="filter-fonction" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm"></select><select id="filter-lieu" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm"></select></div><div class="flex items-center gap-4"><div class="flex items-center gap-2" id="missing-info-container"><input type="checkbox" id="filter-missing-info" class="form-checkbox h-4 w-4 text-red-600 rounded"><label for="filter-missing-info" class="text-sm font-medium text-gray-700 select-none">Infos manquantes ❌</label></div><div class="flex items-center gap-2"><input type="checkbox" id="toggleTel" class="form-checkbox h-4 w-4 text-blue-600 rounded"><label for="toggleTel" class="text-sm font-medium text-gray-700 select-none">Masquer Tél.</label></div><div class="flex items-center gap-2"><span id="save-message" class="text-green-600 font-bold"></span><button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table class="divide-y divide-gray-200" id="benevoles-table"><thead class="bg-gray-200 sticky top-0 z-10"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider rounded-tl-xl">Nom & Prénom</th><th data-column="tel" class="px-4 py-3 text-left text-xs font-bold uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Jours de présence</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Lieu d'affectation 📍</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Fonction 💼</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Matériel (D/R)</th><th data-column="zello" class="px-4 py-3 text-left text-xs font-bold uppercase">Zello 📻</th><th data-column="acces" class="px-4 py-3 text-left text-xs font-bold uppercase">Accès</th><th data-column="action" class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
+            document.getElementById('content-concurrents').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-6"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Liste des Concurrents</h2><input type="text" id="filter-concurrents-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-4"><button id="add-concurrent-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">+ Ajouter un Concurrent</button><div><span id="save-concurrents-message" class="text-green-600 font-bold mr-4"></span><button id="save-concurrents-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table id="concurrents-admin-table" class="divide-y divide-gray-200"><thead class="bg-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tl-xl">N°</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Concurrent</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Enfant</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Dossier Inscription</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Assurance</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Paiement Cotisation</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Équipements Sécurité</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Contrôle Tech.</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="concurrents-admin-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
+            document.getElementById('content-race').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-6"><div id="chrono-container" class="mb-6 p-6 bg-gray-50 rounded-2xl shadow-inner"><div class="text-center mb-4"><h2 id="current-manche-display" class="text-3xl font-bold text-blue-600"></h2></div><div class="max-w-md mx-auto"><div class="mb-4"><label for="chrono-search-input" class="block text-sm font-medium text-gray-700 mb-1">Concurrent au départ (par N° ou nom)</label><input type="text" id="chrono-search-input" list="concurrents-datalist" placeholder="Rechercher..." class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"><datalist id="concurrents-datalist"></datalist></div><div id="selected-concurrent-display" class="text-center font-bold text-xl text-gray-700 h-8 mb-4"></div><div id="chrono-display" class="text-5xl font-bold text-center text-blue-600 bg-white p-4 rounded-xl mb-4 shadow">00:00:00</div><div class="grid grid-cols-2 gap-3 mt-auto"><button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Démarrer</button><button id="stop-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Arrêter et Enregistrer</button><button id="reset-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200 col-span-2">Réinitialiser</button></div></div></div><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Classement de la Course</h2><input type="text" id="filter-race-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-2 flex-wrap justify-end"><button id="reset-race-btn" class="bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Réinitialiser Course</button><button id="new-heat-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Manche Suivante</button><button id="previous-heat-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Temps Manche Précédente</button><button id="podium-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-xl transition duration-200">Podium</button></div></div><div id="race-table-container" class="bg-gray-100 p-4 rounded-xl shadow-inner flex overflow-hidden"><div class="flex-shrink-0 z-10 bg-gray-100"><table id="concurrents-table-left" class="divide-y divide-gray-200"><thead id="concurrents-table-head-left" class="bg-gray-200 sticky top-0"></thead><tbody id="concurrents-table-body-left" class="bg-white divide-y divide-gray-200"></tbody></table></div><div id="race-table-scrollable-middle" class="flex-grow overflow-x-auto"><table id="concurrents-table-middle" class="divide-y divide-gray-200"><thead id="concurrents-table-head-middle" class="bg-gray-200 sticky top-0"></thead><tbody id="concurrents-table-body-middle" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex-shrink-0 z-10 bg-gray-100"><table id="concurrents-table-right" class="divide-y divide-gray-200"><thead id="concurrents-table-head-right" class="bg-gray-200 sticky top-0"></thead><tbody id="concurrents-table-body-right" class="bg-white divide-y divide-gray-200"></tbody></table></div></div></div>` + creditsButtonHTML;
+            document.getElementById('content-admin').innerHTML = creditsButtonHTML + `
+                <div class="bg-white shadow-xl rounded-2xl p-6">
+                    <div class="mb-6 border-b border-gray-200">
+                         <nav class="flex space-x-4" aria-label="Admin Tabs">
+                            <button id="show-access-btn" class="admin-sub-tab-button active py-2 px-4 border-b-2 font-medium text-sm">Gestion des Accès</button>
+                            <button id="show-reset-btn" class="admin-sub-tab-button py-2 px-4 border-b-2 font-medium text-sm">Réinitialisation</button>
+                        </nav>
+                    </div>
+
+                    <div id="admin-access-section">
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><div><h2 class="text-xl font-bold text-gray-800">Gérer les utilisateurs autorisés</h2><p class="text-gray-600 text-sm">Seuls les utilisateurs listés ici peuvent se connecter.</p></div><input type="text" id="filter-access-input" placeholder="Rechercher un utilisateur..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></div><form id="add-user-form" class="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-wrap items-end gap-4"><div class="flex-grow"><label for="user-nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="user-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="user-prenom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" id="user-tel" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-role" class="block text-sm font-medium text-gray-700">Rôle</label><select id="user-role" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"><option value="Super Admin">Super Admin</option><option value="Organisation">Organisation</option><option value="Responsable Radio">Responsable Radio</option><option value="MAIRE">MAIRE</option><option value="Chrono Départ">Chrono Départ</option><option value="Chrono Arrivée">Chrono Arrivée</option><option value="Bénévole">Bénévole</option><option value="Concurrent">Concurrent</option></select></div><div class="flex items-center gap-2"><button type="submit" id="add-user-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button><button type="button" id="cancel-edit-user-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl" style="display:none;">Annuler</button></div></form><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-100"><tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Nom Prénom</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Rôle</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th></tr></thead><tbody id="access-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div>
+                    </div>
+
+                    <div id="admin-reset-section" style="display: none;">
+                         <h2 class="text-xl font-bold text-red-700 mb-2">Zone de Réinitialisation</h2><p class="text-gray-600 mb-6">Attention, les actions sur cette page sont irréversibles et supprimeront définitivement les données de la base.</p><div class="space-y-6"><div class="border border-red-200 bg-red-50 p-4 rounded-lg"><h3 class="font-bold text-lg text-red-800">Réinitialiser les Bénévoles</h3><p class="text-red-700 my-2">Cette action supprimera <strong>TOUS</strong> les bénévoles de la base de données.</p><button id="reset-benevoles-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl">Réinitialiser les Bénévoles</button></div><div class="border border-red-200 bg-red-50 p-4 rounded-lg"><h3 class="font-bold text-lg text-red-800">Réinitialiser la Course</h3><p class="text-red-700 my-2">Cette action supprimera <strong>TOUS</strong> les concurrents et <strong>TOUS</strong> les temps de course enregistrés. La course sera remise à zéro (Manche 1).</p><button id="reset-concurrents-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl">Réinitialiser les Concurrents et la Course</button></div><div class="border border-red-200 bg-red-50 p-4 rounded-lg"><h3 class="font-bold text-lg text-red-800">Réinitialiser les Accès</h3><p class="text-red-700 my-2">Cette action supprimera <strong>TOUS</strong> les utilisateurs, <strong>SAUF</strong> le Super Administrateur.</p><button id="reset-access-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl">Réinitialiser les Accès</button></div></div>
+                    </div>
+                </div>
+            ` + creditsButtonHTML;
+
             document.getElementById('add-benevole-modal').innerHTML = `<div class="modal-content max-w-md"><div class="modal-header"><h2 id="modal-title">Ajouter un nouveau bénévole</h2><button class="modal-close-button" id="close-modal-btn">&times;</button></div><form id="add-benevole-form" class="space-y-4"><div><label for="nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="nom" name="nom" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></div><div><label for="prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="prenom" name="prenom" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></div><div><label for="tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="text" id="tel" name="tel" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex justify-end pt-4"><button type="submit" id="modal-submit-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">Ajouter</button></div></form></div>`;
+            document.getElementById('add-concurrent-modal').innerHTML = `<div class="modal-content max-w-md"><div class="modal-header"><h2 id="concurrent-modal-title">Ajouter un Concurrent</h2><button class="modal-close-button" id="close-concurrent-modal-btn">&times;</button></div><form id="add-concurrent-form-modal" class="space-y-4"><div><label for="concurrent-numero-modal" class="block text-sm font-medium text-gray-700">N°</label><input type="number" id="concurrent-numero-modal" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div><label for="concurrent-nom-modal" class="block text-sm font-medium text-gray-700">Nom Concurrent / Équipe</label><input type="text" id="concurrent-nom-modal" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div class="flex items-center"><input type="checkbox" id="concurrent-enfant-modal" class="h-4 w-4 text-blue-600 rounded mr-2"><label for="concurrent-enfant-modal" class="text-sm font-medium text-gray-700">Enfant 🧒</label></div><div class="flex justify-end pt-4"><button type="submit" id="concurrent-modal-submit-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">Ajouter</button></div></form></div>`;
             
             // Re-select all elements after injection
-            const tableBody = document.getElementById('table-body'), toggleTelCheckbox = document.getElementById('toggleTel'), addBenevoleBtn = document.getElementById('add-benevole-btn'), saveBtn = document.getElementById('save-btn'), closeModalBtn = document.getElementById('close-modal-btn'), addBenevoleForm = document.getElementById('add-benevole-form'), filterInput = document.getElementById('filter-input'), filterMissingInfoCheckbox = document.getElementById('filter-missing-info');
-            const chronoDisplay=document.getElementById("chrono-display"),startBtn=document.getElementById("start-btn"),stopBtn=document.getElementById("stop-btn"),resetBtn=document.getElementById("reset-btn"),raceConcurrentsTableBody=document.getElementById("concurrents-table-body"),concurrentSelect=document.getElementById("concurrent-select"),addConcurrentFormAdmin = document.getElementById('add-concurrent-form'),concurrentsAdminBody = document.getElementById('concurrents-admin-body'),saveConcurrentsBtn = document.getElementById('save-concurrents-btn'),saveConcurrentsMessage = document.getElementById('save-concurrents-message'),addUserForm = document.getElementById('add-user-form'),accessTableBody = document.getElementById('access-table-body'), newHeatBtn = document.getElementById('new-heat-btn'), podiumBtn = document.getElementById('podium-btn'), previousHeatBtn = document.getElementById('previous-heat-btn'), concurrentsTableHead = document.getElementById('concurrents-table-head'), currentMancheDisplay = document.getElementById('current-manche-display'), gridScreen=document.getElementById("starting-grid-screen"),closeGridBtn=document.getElementById("close-grid-btn"), resetRaceBtn = document.getElementById('reset-race-btn'), importBtn = document.getElementById('import-btn'), exportBtn = document.getElementById('export-btn'), importFile = document.getElementById('import-file'), creditsModal = document.getElementById('credits-modal'), closeCreditsModalBtn = document.getElementById('close-credits-modal-btn');
+            const tableBody = document.getElementById('table-body'), toggleTelCheckbox = document.getElementById('toggleTel'), addBenevoleBtn = document.getElementById('add-benevole-btn'), saveBtn = document.getElementById('save-btn'), closeModalBtn = document.getElementById('close-modal-btn'), addBenevoleForm = document.getElementById('add-benevole-form'), filterInput = document.getElementById('filter-input'), filterMissingInfoCheckbox = document.getElementById('filter-missing-info'), filterFonction = document.getElementById('filter-fonction'), filterLieu = document.getElementById('filter-lieu');
+            const chronoDisplay=document.getElementById("chrono-display"),startBtn=document.getElementById("start-btn"),stopBtn=document.getElementById("stop-btn"),resetBtn=document.getElementById("reset-btn"),addConcurrentBtn = document.getElementById('add-concurrent-btn'),concurrentsAdminBody = document.getElementById('concurrents-admin-body'),saveConcurrentsBtn = document.getElementById('save-concurrents-btn'),saveConcurrentsMessage = document.getElementById('save-concurrents-message'),addUserForm = document.getElementById('add-user-form'),accessTableBody = document.getElementById('access-table-body'), newHeatBtn = document.getElementById('new-heat-btn'), podiumBtn = document.getElementById('podium-btn'), previousHeatBtn = document.getElementById('previous-heat-btn'), currentMancheDisplay = document.getElementById('current-manche-display'), gridScreen=document.getElementById("starting-grid-screen"),closeGridBtn=document.getElementById("close-grid-btn"), resetRaceBtn = document.getElementById('reset-race-btn'), importBtn = document.getElementById('import-btn'), exportBtn = document.getElementById('export-btn'), importFile = document.getElementById('import-file'), creditsModal = document.getElementById('credits-modal'), closeCreditsModalBtn = document.getElementById('close-credits-modal-btn'), addConcurrentModal = document.getElementById('add-concurrent-modal'), closeConcurrentModalBtn = document.getElementById('close-concurrent-modal-btn'), addConcurrentFormModal = document.getElementById('add-concurrent-form-modal'), cancelEditUserBtn = document.getElementById('cancel-edit-user-btn'), addUserBtn = document.getElementById('add-user-btn'), filterConcurrentsInput = document.getElementById('filter-concurrents-input'), filterRaceInput = document.getElementById('filter-race-input'), filterAccessInput = document.getElementById('filter-access-input'), resetBenevolesBtn = document.getElementById('reset-benevoles-btn'), resetConcurrentsBtn = document.getElementById('reset-concurrents-btn'), chronoSearchInput = document.getElementById('chrono-search-input'), concurrentsDatalist = document.getElementById('concurrents-datalist'), selectedConcurrentDisplay = document.getElementById('selected-concurrent-display'), timeConfirmationModal = document.getElementById('time-confirmation-modal'), closeTimeConfirmModalBtn = document.getElementById('close-time-confirm-modal-btn');
             
             // =========================
             // BÉNÉVOLES LOGIC
             // =========================
             let data = [];
             const rolesOptions = ["Aucun accès", "Super Admin", "Organisation", "Responsable Radio", "MAIRE", "Chrono Départ", "Chrono Arrivée", "Bénévole", "Concurrent"];
-            const joursOptions=["Samedi","Dimanche","Samedi/Dimanche","Non renseigné"],fonctionOptions=["Organisateur 🧑‍💼","Accueil / Inscriptions 📝","Contrôle Technique 🛠️","Sécurité Piste 🚧","Commissaire de Course 🚦","Chronométrage ⏱️","Logistique 🚚","Relations Compétiteurs 👋","Espace Convivialité -Bénévoles 🧑‍🤝‍🧑","Remontée des Caisses 🚜","Speaker 📢","Photographe 📸","Responsable Radio 📻","Pôle de Départ 🏁","Pôle d'Arrivée ✅","Podium 🏆","Secrétariat 📋","Responsable Expo voiture 🚗","Soutien opérationnel","À définir"],lieuOptions=["Mobile sur l'ensemble du parcours","Parc Concurrents","Piste de Course","Grille de Départ","Contrôle Technique","Espace Bénévoles","Rue de l'étang","Rue des Ajoncs","Rue Maréchal Leclerc","Rue Général De Gaulle","Rue Général Déborde","Rue des Écoles","Rue Madame Gadot","Rue Saint-Joseph","Rue François Le Bail","Ligne d'arrivée","Garage Motrio","À définir"];
+            const joursOptions=["Samedi","Dimanche","Samedi/Dimanche","Non renseigné"],fonctionOptions=["Organisateur 🧑‍💼","Accueil / Inscriptions 📝","Contrôle Technique 🛠️","Sécurité Piste 🚧","Commissaire de Course 🚦","Chronométrage ⏱️","Logistique 🚚","Relations Compétiteurs 👋","Espace Convivialité -Bénévoles 🧑‍🤝‍🧑","Remontée des Caisses 🚜","Speaker 📢","Photographe 📸","Responsable Radio 📻","Pôle de Départ 🏁","Pôle d'Arrivée ✅","Podium 🏆","Secrétariat 📋","Responsable Expo voiture 🚗","Soutien opérationnel","À définir"],lieuOptions=["Mobile sur l'ensemble du parcours","Parc Concurrents","Piste de Course","Grille de Départ","Contrôle Technique","Espace Bénévoles","Rue de l'étang","Rue des Ajoncs","Rue Maréchal Leclerc","Rue Général De Gaulle","Rue Général Déborde","Rue des Écoles","Rue Madame Gadot","Rue Saint-Joseph","Rue François Le Bail","Ligne d'arrivée","Garage Motrio", "Mur de Carton", "À définir"];
             
             const benevolesCollection = collection(db, `artifacts/${appId}/public/data/benevoles`);
             onSnapshot(benevolesCollection, (snapshot) => {
                 data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderBenevolesTable();
             });
+
+            function populateFilter(selectElement, optionsArray, defaultLabel) {
+                selectElement.innerHTML = `<option value="all">${defaultLabel}</option>`;
+                optionsArray.forEach(option => {
+                    selectElement.innerHTML += `<option value="${option}">${option}</option>`;
+                });
+            }
+            populateFilter(filterFonction, fonctionOptions, 'Toutes les fonctions');
+            populateFilter(filterLieu, lieuOptions, 'Tous les lieux');
 
             async function saveBenevolesData() {
                 const batch = writeBatch(db);
@@ -422,20 +592,27 @@
             }
             
             function updateAccessFromBenevole(benevole, newRole) {
-                const existingUser = utilisateursAutorises.find(u => u.tel === benevole.tel);
+                const cleanBenevoleTel = String(benevole.tel || '').replace(/\s/g, '');
+                // Ne rien faire si le numéro de téléphone est vide ou non renseigné
+                if (!cleanBenevoleTel || cleanBenevoleTel.toLowerCase() === "nonrenseigné") return;
+
+                const existingUser = utilisateursAutorises.find(u => String(u.tel || '').replace(/\s/g, '') === cleanBenevoleTel);
+
                 if (newRole === 'Aucun accès') {
                     if (existingUser) {
                         deleteDoc(doc(db, `artifacts/${appId}/public/data/users`, existingUser.id));
                     }
                 } else {
-                    if (existingUser) {
-                        updateDoc(doc(db, `artifacts/${appId}/public/data/users`, existingUser.id), { role: newRole });
+                     if (existingUser) {
+                        // Mettre à jour le rôle et s'assurer que le numéro de téléphone est propre
+                        updateDoc(doc(db, `artifacts/${appId}/public/data/users`, existingUser.id), { role: newRole, tel: cleanBenevoleTel });
                     } else {
-                        addDoc(collection(db, `artifacts/${appId}/public/data/users`), { 
-                            nom: benevole.nom, 
-                            prenom: benevole.prenom, 
-                            tel: benevole.tel, 
-                            role: newRole 
+                        // Créer un nouvel utilisateur avec un numéro de téléphone propre
+                        addDoc(collection(db, `artifacts/${appId}/public/data/users`), {
+                            nom: benevole.nom,
+                            prenom: benevole.prenom,
+                            tel: cleanBenevoleTel,
+                            role: newRole
                         });
                     }
                 }
@@ -508,9 +685,15 @@
 
             function renderBenevolesTable() {
                 const filterValue = filterInput.value.toLowerCase();
+                const fonctionFilter = filterFonction.value;
+                const lieuFilter = filterLieu.value;
                 const missingInfoOnly = filterMissingInfoCheckbox.checked;
 
-                let dataToRender = data.filter(p => `${p.nom} ${p.prenom}`.toLowerCase().includes(filterValue));
+                let dataToRender = data.filter(p => 
+                    (`${p.nom} ${p.prenom}`.toLowerCase().includes(filterValue)) &&
+                    (fonctionFilter === 'all' || p.fonction === fonctionFilter) &&
+                    (lieuFilter === 'all' || p.lieu === lieuFilter)
+                );
 
                 if (missingInfoOnly) {
                     dataToRender = dataToRender.filter(p => p.tel === "Non renseigné" || p.jours === "Non renseigné" || p.lieu === "À définir" || p.fonction === "À définir");
@@ -530,10 +713,24 @@
                 dataToRender.forEach((person) => {
                     const personIndex = data.findIndex(p => p.id === person.id);
                     const row = document.createElement('tr');
+                    const cleanTel = String(person.tel || '').replace(/\s/g, '');
+                    const hasValidTel = person.tel && person.tel !== "Non renseigné" && cleanTel.length > 0;
 
                     row.innerHTML = `
                         <td class="px-4 py-3"><input type="text" value="${person.nom} ${person.prenom}" class="w-full text-sm"></td>
-                        <td data-column="tel" class="px-4 py-3"><input type="tel" value="${person.tel}" class="w-full text-sm ${!person.tel || person.tel === "Non renseigné" ? "text-red-500" : ""}"></td>
+                        <td data-column="tel" class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <input type="tel" value="${person.tel}" class="flex-grow w-full text-sm ${!hasValidTel ? "text-red-500" : ""}">
+                                <a href="tel:${cleanTel}" class="${!hasValidTel ? 'hidden' : ''} text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-100 transition-colors" title="Appeler ${person.prenom}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path></svg>
+                                </a>
+                                <span class="${hasValidTel ? 'hidden' : ''} text-red-500 p-1" title="Numéro manquant">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                            </div>
+                        </td>
                         <td class="px-4 py-3"></td>
                         <td class="px-4 py-3"></td>
                         <td class="px-4 py-3"></td>
@@ -590,7 +787,7 @@
                     });
                     row.children[5].appendChild(materielDiv);
                     
-                    const userInAccessList = utilisateursAutorises.find(u => u.tel === person.tel);
+                    const userInAccessList = utilisateursAutorises.find(u => String(u.tel || '').replace(/\s/g, '') === cleanTel);
                     const currentRole = userInAccessList ? userInAccessList.role : "Aucun accès";
                     const roleSelect = createBenevoleSelect(rolesOptions, currentRole, personIndex, "role", !isSuperAdmin);
                     row.children[7].appendChild(roleSelect);
@@ -608,13 +805,14 @@
                     btn.addEventListener('click', (e) => {
                         const personId = e.target.dataset.id;
                         const person = data.find(p => p.id === personId);
-                        if (confirm(`Êtes-vous sûr de vouloir supprimer ${person.prenom} ${person.nom} ?`)) {
+                        const message = `Êtes-vous sûr de vouloir supprimer <strong>${person.prenom} ${person.nom}</strong> ?`;
+                        showConfirmationModal(message, () => {
                             deleteDoc(doc(db, `artifacts/${appId}/public/data/benevoles`, personId));
-                            const accessUser = utilisateursAutorises.find(u => u.tel === person.tel);
+                            const accessUser = utilisateursAutorises.find(u => String(u.tel || '').replace(/\s/g, '') === String(person.tel || '').replace(/\s/g, ''));
                             if (accessUser) {
                                 deleteDoc(doc(db, `artifacts/${appId}/public/data/users`, accessUser.id));
                             }
-                        }
+                        });
                     });
                 });
                 
@@ -634,11 +832,14 @@
                 const radiosManquantes = radiosDistribues - radiosRestitues;
                 const siffletsManquants = siffletsDistribues - siffletsRestitues;
 
-                document.getElementById("radios-distribuees").textContent = radiosDistribues;
+                const radiosDistribueesEl = document.getElementById("radios-distribuees");
+                if (!radiosDistribueesEl) return; // Prevent error if tab not rendered
+
+                radiosDistribueesEl.textContent = radiosDistribues;
                 document.getElementById("radios-restituees").textContent = radiosRestitues;
                 document.getElementById("radios-manquantes").textContent = radiosManquantes;
                 document.getElementById("sifflets-distribues").textContent = siffletsDistribues;
-                document.getElementById("sifflets-restitues").textContent = siffletsRestitues;
+                document.getElementById("sifflets-restituees").textContent = siffletsRestitues;
                 document.getElementById("sifflets-manquants").textContent = siffletsManquants;
                 document.getElementById("appareils-manquants").textContent = radiosManquantes + siffletsManquants;
             }
@@ -693,6 +894,8 @@
             });
 
             filterInput.addEventListener('input', renderBenevolesTable);
+            filterFonction.addEventListener('change', renderBenevolesTable);
+            filterLieu.addEventListener('change', renderBenevolesTable);
             filterMissingInfoCheckbox.addEventListener('change', renderBenevolesTable);
             toggleTelCheckbox.addEventListener('change', toggleTelColumn);
 
@@ -708,6 +911,7 @@
             onSnapshot(concurrentsCollection, (snapshot) => {
                 concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderAllConcurrentsView();
+                populateConcurrentsDatalist();
             });
 
             async function saveConcurrentsData() {
@@ -728,9 +932,35 @@
                 renderRaceTable();
             }
 
+            function openConcurrentModal(concurrentId = null) {
+                const modal = document.getElementById('add-concurrent-modal');
+                const modalTitle = document.getElementById('concurrent-modal-title');
+                const modalSubmitBtn = document.getElementById('concurrent-modal-submit-btn');
+                
+                addConcurrentFormModal.reset();
+
+                if (concurrentId) {
+                    editingConcurrentId = concurrentId;
+                    const concurrent = concurrents.find(c => c.id === concurrentId);
+                    modalTitle.textContent = "Modifier le Concurrent";
+                    modalSubmitBtn.textContent = "Enregistrer";
+                    document.getElementById('concurrent-numero-modal').value = concurrent.numero;
+                    document.getElementById('concurrent-nom-modal').value = concurrent.nom;
+                    document.getElementById('concurrent-enfant-modal').checked = concurrent.isChild;
+                } else {
+                    editingConcurrentId = null;
+                    modalTitle.textContent = "Ajouter un Concurrent";
+                    modalSubmitBtn.textContent = "Ajouter";
+                }
+                modal.style.display = 'flex';
+            }
+
             function renderConcurrentsAdminTable() {
+                const filterValue = filterConcurrentsInput.value.toLowerCase();
+                const filteredData = concurrents.filter(c => c.nom.toLowerCase().includes(filterValue));
+
                 concurrentsAdminBody.innerHTML = "";
-                concurrents.sort((a, b) => a.numero - b.numero).forEach(concurrent => {
+                filteredData.sort((a, b) => a.numero - b.numero).forEach(concurrent => {
                     const concurrentIndex = concurrents.findIndex(c => c.numero === concurrent.numero);
                     const row = document.createElement("tr");
                     row.innerHTML = `
@@ -747,7 +977,13 @@
                         </td>
                         <td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${concurrent.numero}" data-prop="equipements" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.equipements ? "checked" : ""}></td>
                         <td class="px-4 py-3"></td>
-                        <td class="px-4 py-3 text-sm"><button data-id="${concurrent.id}" class="delete-concurrent-btn text-red-500 hover:text-red-700 text-xs">Suppr.</button></td>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="flex items-center gap-2 justify-center">
+                                <button data-id="${concurrent.id}" class="edit-concurrent-btn text-blue-600 hover:text-blue-700 text-xs font-medium">Modifier</button>
+                                <span class="text-gray-300">|</span>
+                                <button data-id="${concurrent.id}" class="delete-concurrent-btn text-red-500 hover:text-red-700 text-xs font-medium">Suppr.</button>
+                            </div>
+                        </td>
                     `;
             
                     const select = document.createElement("select");
@@ -774,11 +1010,17 @@
                     concurrentsAdminBody.appendChild(row);
                 });
             
+                document.querySelectorAll(".edit-concurrent-btn").forEach(btn => btn.addEventListener("click", event => {
+                    openConcurrentModal(event.target.dataset.id);
+                }));
+
                 document.querySelectorAll(".delete-concurrent-btn").forEach(btn => btn.addEventListener("click", event => {
                     const docId = event.target.dataset.id;
-                    if (confirm(`Supprimer ce concurrent ?`)) {
-                         deleteDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, docId));
-                    }
+                    const concurrent = concurrents.find(c => c.id === docId);
+                    const message = `Êtes-vous sûr de vouloir supprimer le concurrent <strong>${concurrent.nom}</strong> ?`;
+                    showConfirmationModal(message, () => {
+                        deleteDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, docId));
+                    });
                 }));
             
                 document.querySelectorAll(".doc-check").forEach(checkbox => checkbox.addEventListener("change", event => {
@@ -832,7 +1074,7 @@
             }
 
             function updateChronoButtons(chronoIsRunning) {
-                const concurrentSelected = !!concurrentSelect.value;
+                const concurrentSelected = !!selectedConcurrentForChrono;
                 const canStart = isSuperAdmin || currentUser.role === 'Organisation' || currentUser.role === 'Chrono Départ';
                 const canStop = isSuperAdmin || currentUser.role === 'Organisation' || currentUser.role === 'Chrono Arrivée';
                 const canReset = isSuperAdmin || currentUser.role === 'Organisation' || currentUser.role === 'Chrono Départ';
@@ -843,16 +1085,19 @@
             }
 
             async function startChrono() {
-                const selectedConcurrent = concurrentSelect.value;
+                const selectedConcurrent = selectedConcurrentForChrono;
                 if (!selectedConcurrent) {
                     alert("Veuillez sélectionner un concurrent avant de démarrer.");
                     return;
                 }
-                await setDoc(chronoDocRef, {
+                await updateDoc(chronoDocRef, {
                     running: true,
                     startTime: new Date().getTime(),
                     currentConcurrent: selectedConcurrent
                 });
+                selectedConcurrentForChrono = null;
+                selectedConcurrentDisplay.textContent = '';
+                chronoSearchInput.value = '';
             }
 
             async function stopChrono() {
@@ -871,77 +1116,122 @@
                     const manches = concurrent.manches;
                     manches[currentManche - 1] = difference;
                     await updateDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, concurrent.id), { manches: manches });
+                    
+                    document.getElementById('time-confirm-concurrent').textContent = `N°${concurrent.numero} - ${concurrent.nom}`;
+                    document.getElementById('time-confirm-time').textContent = formatTime(difference);
+                    timeConfirmationModal.style.display = 'flex';
                 }
 
-                await setDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null });
+                await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null });
+                selectedConcurrentForChrono = null;
+                selectedConcurrentDisplay.textContent = '';
+                chronoSearchInput.value = '';
             }
 
             async function resetChrono() {
-                 await setDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null });
+                 await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null });
+                 selectedConcurrentForChrono = null;
+                 selectedConcurrentDisplay.textContent = '';
+                 chronoSearchInput.value = '';
             }
 
             async function startNewHeat() { 
-                if (currentManche < 8) {
-                    if (confirm("Êtes-vous sûr de vouloir passer à la manche suivante ?")) {
-                        currentManche++; 
-                        renderRaceTable(); 
-                    }
+                const nextManche = currentManche + 1;
+                if (nextManche <= 8) {
+                     const message = `Êtes-vous sûr de vouloir passer à la manche <strong>${nextManche <= 2 ? 'Descente test ' + nextManche : 'Course ' + (nextManche - 2)}</strong> ?`;
+                    showConfirmationModal(message, async () => {
+                        await updateDoc(chronoDocRef, { currentManche: nextManche });
+                    }, "Passer à la manche suivante ?");
                 } else {
-                     alert("Nombre maximum de manches atteint."); 
+                    alert("Nombre maximum de manches atteint."); 
                 }
             }
 
             async function resetRace() {
-                if(isSuperAdmin && confirm("ACTION IRRÉVERSIBLE\n\nÊtes-vous sûr de vouloir réinitialiser TOUTE la course ? Tous les temps de tous les concurrents seront effacés.")) {
-                    const batch = writeBatch(db);
-                    concurrents.forEach(c => {
-                        const docRef = doc(db, `artifacts/${appId}/public/data/concurrents`, c.id);
-                        batch.update(docRef, { 
-                            manches: new Array(8).fill(null), 
-                            meilleurTemps: null, 
-                            tempsTotal: null 
+                if(isSuperAdmin) {
+                    showConfirmationModal("ACTION IRRÉVERSIBLE<br><br>Êtes-vous sûr de vouloir réinitialiser <strong>TOUTE</strong> la course ? Tous les temps seront effacés.", async () => {
+                        const batch = writeBatch(db);
+                        concurrents.forEach(c => {
+                            const docRef = doc(db, `artifacts/${appId}/public/data/concurrents`, c.id);
+                            batch.update(docRef, { 
+                                manches: new Array(8).fill(null), 
+                                meilleurTemps: null, 
+                                tempsTotal: null 
+                            });
                         });
+                        await batch.commit();
+                        await updateDoc(chronoDocRef, { currentManche: 1 });
                     });
-                    await batch.commit();
-                    currentManche = 1;
                 }
             }
 
             function renderRaceTable(){
-                const headers = ['Cl.', 'N°', 'Concurrent', ...Array.from({length: 8}, (_, i) => i < 2 ? `Test ${i+1}` : `Course ${i-1}`), 'Temps Total', 'Meilleur Temps'];
-                concurrentsTableHead.innerHTML = `<tr>${headers.map((h, i) => `<th class="px-4 py-3 text-left text-xs font-bold uppercase ${i===0?'rounded-tl-xl':''} ${i===headers.length-1?'rounded-tr-xl':''}">${h}</th>`).join('')}</tr>`;
+                const headLeft = document.getElementById('concurrents-table-head-left');
+                const bodyLeft = document.getElementById('concurrents-table-body-left');
+                const headMiddle = document.getElementById('concurrents-table-head-middle');
+                const bodyMiddle = document.getElementById('concurrents-table-body-middle');
+                const headRight = document.getElementById('concurrents-table-head-right');
+                const bodyRight = document.getElementById('concurrents-table-body-right');
 
-                concurrents.forEach(c => {
+                headLeft.innerHTML = ''; bodyLeft.innerHTML = ''; headMiddle.innerHTML = ''; bodyMiddle.innerHTML = ''; headRight.innerHTML = ''; bodyRight.innerHTML = '';
+
+                const filterValue = filterRaceInput.value.toLowerCase();
+                let dataToRender = concurrents.filter(c => c.nom.toLowerCase().includes(filterValue));
+                
+                dataToRender.forEach(c => {
                     const officialRuns = c.manches.slice(2).filter(t => t !== null && t !== undefined);
                     c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
                     c.tempsTotal = officialRuns.length > 0 ? officialRuns.reduce((a, b) => a + b, 0) : null;
                 });
                 
-                concurrents.sort((a,b) => {
+                dataToRender.sort((a,b) => {
                     if (a.meilleurTemps === null) return 1;
                     if (b.meilleurTemps === null) return -1;
                     return a.meilleurTemps - b.meilleurTemps;
                 });
+
+                const headersLeft = ['Cl.', 'N°', 'Concurrent'];
+                const headersMiddle = Array.from({length: 8}, (_, i) => i < 2 ? `Descente test ${i+1}` : `Course ${i-1}`);
+                const headersRight = ['Temps Total', 'Meilleur Temps'];
+
+                headLeft.innerHTML = `<tr>${headersLeft.map(h => `<th class="px-4 py-3 text-left text-xs font-bold uppercase bg-gray-200">${h}</th>`).join('')}</tr>`;
+                const currentMancheIndexInMiddle = currentManche - 1;
+                headMiddle.innerHTML = `<tr>${headersMiddle.map((h, i) => `<th id="${i === currentMancheIndexInMiddle ? 'current-heat-header' : ''}" class="px-4 py-3 text-left text-xs font-bold uppercase bg-gray-200">${h}</th>`).join('')}</tr>`;
+                headRight.innerHTML = `<tr>${headersRight.map(h => `<th class="px-4 py-3 text-left text-xs font-bold uppercase bg-gray-200">${h}</th>`).join('')}</tr>`;
                 
-                raceConcurrentsTableBody.innerHTML="";
                 const canEditTimes = isSuperAdmin || ['Organisation', 'Chrono Départ', 'Chrono Arrivée'].includes(currentUser.role);
 
-                concurrents.forEach((concurrent, index)=>{
-                    const row = document.createElement("tr");
+                dataToRender.forEach((concurrent, index)=>{
+                    const rowLeft = bodyLeft.insertRow();
+                    const rowMiddle = bodyMiddle.insertRow();
+                    const rowRight = bodyRight.insertRow();
+                    
                     const classement = concurrent.meilleurTemps !== null ? index + 1 : "-";
-                    let rowHtml = `<td class="px-4 py-3 text-sm font-bold">${classement}</td><td class="px-4 py-3 text-sm">${concurrent.numero}</td><td class="px-4 py-3 text-sm">${concurrent.nom} ${concurrent.isChild ? '🧒' : ''}</td>`;
-                    for(let i=0; i<8; i++){ 
-                        rowHtml += `<td class="px-4 py-3 text-sm"><input type="text" class="time-input" value="${formatTime(concurrent.manches[i])}" data-concurrent-id="${concurrent.id}" data-manche-index="${i}" ${canEditTimes ? '' : 'disabled'}></td>`; 
-                    }
-                    rowHtml += `<td class="px-4 py-3 text-sm font-bold">${formatTime(concurrent.tempsTotal)}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(concurrent.meilleurTemps)}</td>`;
-                    row.innerHTML = rowHtml;
-                    raceConcurrentsTableBody.appendChild(row);
+                    let classementHTML = classement;
+                    if(classement === 1) classementHTML = `🥇 ${classement}`;
+                    else if(classement === 2) classementHTML = `🥈 ${classement}`;
+                    else if(classement === 3) classementHTML = `🥉 ${classement}`;
+
+                    rowLeft.innerHTML = `<td class="px-4 py-3 text-base font-bold text-center">${classementHTML}</td><td class="px-4 py-3 text-sm">${concurrent.numero}</td><td class="px-4 py-3 text-sm">${concurrent.nom} ${concurrent.isChild ? '🧒' : ''}</td>`;
+                    
+                    let middleHtml = '';
+                    for(let i=0; i<8; i++){ middleHtml += `<td class="px-4 py-3 text-sm"><input type="text" class="time-input" value="${formatTime(concurrent.manches[i])}" data-concurrent-id="${concurrent.id}" data-manche-index="${i}" ${canEditTimes ? '' : 'disabled'}></td>`; }
+                    rowMiddle.innerHTML = middleHtml;
+
+                    rowRight.innerHTML = `<td class="px-4 py-3 text-sm font-bold">${formatTime(concurrent.tempsTotal)}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(concurrent.meilleurTemps)}</td>`;
                 });
                 
-                currentMancheDisplay.textContent = currentManche <= 2 ? `Test ${currentManche}` : `Course ${currentManche - 2}`;
-                populateConcurrentSelect();
+                currentMancheDisplay.textContent = currentManche <= 2 ? `Descente test ${currentManche}` : `Course ${currentManche - 2}`;
+                
+                setTimeout(() => {
+                    const currentHeatHeader = document.getElementById('current-heat-header');
+                    if (currentHeatHeader) {
+                        currentHeatHeader.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }
+                }, 100);
             }
-             raceConcurrentsTableBody.addEventListener('change', async (e) => {
+
+             document.getElementById('race-table-scrollable-middle').addEventListener('change', async (e) => {
                 if (e.target.classList.contains('time-input')) {
                     const input = e.target;
                     const concurrentId = input.dataset.concurrentId;
@@ -957,16 +1247,13 @@
                 }
             });
 
-            function populateConcurrentSelect() {
-                const selectedValue = concurrentSelect.value;
-                concurrentSelect.innerHTML = '<option value="">-- Choisir un concurrent --</option>';
+            function populateConcurrentsDatalist() {
+                concurrentsDatalist.innerHTML = '';
                 concurrents.sort((a, b) => a.numero - b.numero).forEach(concurrent => {
                     const option = document.createElement("option");
-                    option.value = concurrent.numero;
-                    option.textContent = `N°${concurrent.numero} - ${concurrent.nom}`;
-                    concurrentSelect.appendChild(option);
+                    option.value = `N°${concurrent.numero} - ${concurrent.nom}`;
+                    concurrentsDatalist.appendChild(option);
                 });
-                concurrentSelect.value = selectedValue;
             }
 
             function showGrid(type) {
@@ -985,7 +1272,7 @@
                 } else { // Previous heat
                     if (currentManche === 1) { alert("Aucune manche précédente à afficher."); return; }
                     const prevMancheIndex = currentManche - 2;
-                    const prevMancheName = prevMancheIndex < 2 ? `Test ${prevMancheIndex + 1}` : `Course ${prevMancheIndex - 1}`;
+                    const prevMancheName = prevMancheIndex < 2 ? `Descente test ${prevMancheIndex + 1}` : `Course ${prevMancheIndex - 1}`;
                     title.textContent = `Classement - ${prevMancheName}`;
                     gridHead.innerHTML = `<tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">N°</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Temps ${prevMancheName}</th></tr>`;
                     const ranked = [...concurrents].filter(c => c.manches[prevMancheIndex] !== null).sort((a,b) => a.manches[prevMancheIndex] - b.manches[prevMancheIndex]);
@@ -1001,26 +1288,88 @@
             newHeatBtn.addEventListener('click', startNewHeat);
             resetRaceBtn.addEventListener('click', resetRace);
             saveConcurrentsBtn.addEventListener('click', saveConcurrentsData);
-            addConcurrentFormAdmin.addEventListener('submit', async e=>{e.preventDefault();const numero = document.getElementById("concurrent-numero").value, nom = document.getElementById("concurrent-nom").value, isChild = document.getElementById("concurrent-enfant").checked;if(concurrents.some(c=>c.numero==numero)){alert("Ce numéro de concurrent existe déjà.");return}await addDoc(collection(db, `artifacts/${appId}/public/data/concurrents`),{numero:parseInt(numero),nom:nom, isChild: isChild, manches:new Array(8).fill(null),meilleurTemps:null,tempsTotal:null,documents:{dossier:!1,paiement:{ok:!1,montant:""},assurance:!1},equipements:!1,controle:"À vérifier"}),addConcurrentFormAdmin.reset()});
-            concurrentSelect.addEventListener("change", () => updateChronoButtons(false)); // Assume chrono is not running on change
+            addConcurrentBtn.addEventListener('click', () => openConcurrentModal());
+            closeConcurrentModalBtn.addEventListener('click', () => {
+                document.getElementById('add-concurrent-modal').style.display = 'none';
+                editingConcurrentId = null;
+            });
+            addConcurrentFormModal.addEventListener('submit', async e=>{e.preventDefault();const numero = document.getElementById("concurrent-numero-modal").value, nom = document.getElementById("concurrent-nom-modal").value, isChild = document.getElementById("concurrent-enfant-modal").checked;if(concurrents.some(c=>c.numero==numero && c.id !== editingConcurrentId)){alert("Ce numéro de concurrent existe déjà.");return}if(editingConcurrentId){const docRef=doc(db,`artifacts/${appId}/public/data/concurrents`,editingConcurrentId);await updateDoc(docRef,{numero:parseInt(numero),nom:nom,isChild:isChild})}else{await addDoc(collection(db, `artifacts/${appId}/public/data/concurrents`),{numero:parseInt(numero),nom:nom, isChild: isChild, manches:new Array(8).fill(null),meilleurTemps:null,tempsTotal:null,documents:{dossier:!1,paiement:{ok:!1,montant:""},assurance:!1},equipements:!1,controle:"À vérifier"})}document.getElementById('add-concurrent-modal').style.display="none",addConcurrentFormModal.reset(),editingConcurrentId=null});
+            
+            chronoSearchInput.addEventListener('input', () => {
+                const value = chronoSearchInput.value;
+                const selectedOption = Array.from(concurrentsDatalist.options).find(opt => opt.value === value);
+
+                if (selectedOption) {
+                    const match = value.match(/^N°(\d+)/);
+                    if (match) {
+                        const numero = match[1];
+                        const concurrent = concurrents.find(c => c.numero == numero);
+                        if (concurrent) {
+                            selectedConcurrentForChrono = numero;
+                            selectedConcurrentDisplay.textContent = `Au départ : ${concurrent.nom}`;
+                        }
+                    }
+                } else {
+                    selectedConcurrentForChrono = null;
+                    selectedConcurrentDisplay.textContent = '';
+                }
+                updateChronoButtons(false);
+            });
+            
+            closeTimeConfirmModalBtn.addEventListener('click', () => {
+                timeConfirmationModal.style.display = 'none';
+            });
+
             previousHeatBtn.addEventListener('click', () => showGrid('previous'));
             podiumBtn.addEventListener('click', () => showGrid('podium'));
             closeGridBtn.addEventListener('click',()=>{mainApp.style.display="block",gridScreen.style.display="none"});
+            filterConcurrentsInput.addEventListener('input', renderConcurrentsAdminTable);
+            filterRaceInput.addEventListener('input', renderRaceTable);
+            filterAccessInput.addEventListener('input', renderAccessTable);
 
             // =========================
             // ACCESS LOGIC & INIT
             // =========================
+            function resetUserForm() {
+                addUserForm.reset();
+                editingUserId = null;
+                addUserBtn.textContent = '+ Ajouter';
+                cancelEditUserBtn.style.display = 'none';
+            }
+            
+            function openUserEditForm(userId) {
+                const userToEdit = utilisateursAutorises.find(u => u.id === userId);
+                if (userToEdit) {
+                    editingUserId = userId;
+                    document.getElementById('user-nom').value = userToEdit.nom;
+                    document.getElementById('user-prenom').value = userToEdit.prenom;
+                    document.getElementById('user-tel').value = userToEdit.tel;
+                    document.getElementById('user-role').value = userToEdit.role;
+                    addUserBtn.textContent = 'Enregistrer';
+                    cancelEditUserBtn.style.display = 'inline-block';
+                }
+            }
+            
             function renderAccessTable() {
+                const filterValue = filterAccessInput.value.toLowerCase();
+                const filteredData = utilisateursAutorises.filter(u => `${u.prenom} ${u.nom}`.toLowerCase().includes(filterValue));
+
                 accessTableBody.innerHTML = "";
-                utilisateursAutorises.forEach(user => {
+                filteredData.forEach(user => {
                     const row = document.createElement("tr");
                     const displayRole = user.role;
-                    const roleClass = ["Organisation", "Super Admin", "Chrono Départ", "Chrono Arrivée", "MAIRE"].includes(displayRole) ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800";
+                    const roleClass = ["Organisation", "Super Admin", "Chrono Départ", "Chrono Arrivée", "MAIRE", "Gestionnaire"].includes(displayRole) ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800";
                     row.innerHTML = `
                         <td class="px-4 py-3 text-sm text-gray-800">${user.prenom} ${user.nom}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">${user.tel}</td>
                         <td class="px-4 py-3 text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleClass}">${displayRole}</span></td>
-                        <td class="px-4 py-3 text-sm text-gray-500"><button data-id="${user.id}" class="delete-user-btn text-red-500 hover:text-red-700">Supprimer</button></td>
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                           <div class="flex items-center gap-2">
+                                <button data-id="${user.id}" class="edit-user-btn text-blue-600 hover:text-blue-700 text-xs font-medium">Modifier</button>
+                                <span class="text-gray-300">|</span>
+                                <button data-id="${user.id}" class="delete-user-btn text-red-500 hover:text-red-700 text-xs font-medium">Supprimer</button>
+                            </div>
+                        </td>
                     `;
                     accessTableBody.appendChild(row);
                 });
@@ -1033,29 +1382,109 @@
                             alert("Action impossible : vous ne pouvez pas supprimer le Super Admin.");
                             return;
                         }
-                        if (confirm(`Êtes-vous sûr de vouloir supprimer ${user.prenom} ${user.nom} ?`)) {
-                             deleteDoc(doc(db, `artifacts/${appId}/public/data/users`, userId));
-                        }
+                         const message = `Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>${user.prenom} ${user.nom}</strong> ?`;
+                         showConfirmationModal(message, () => {
+                            deleteDoc(doc(db, `artifacts/${appId}/public/data/users`, userId));
+                         });
+                    });
+                });
+                
+                document.querySelectorAll(".edit-user-btn").forEach(btn => {
+                    btn.addEventListener("click", event => {
+                        openUserEditForm(event.target.dataset.id);
                     });
                 });
             }
+            
+            cancelEditUserBtn.addEventListener('click', resetUserForm);
 
             addUserForm.addEventListener('submit', async e=>{
                 e.preventDefault();
-                const newUser = {
+                const userData = {
                     nom: document.getElementById("user-nom").value.trim().toUpperCase(),
                     prenom: document.getElementById("user-prenom").value.trim(),
                     tel: document.getElementById("user-tel").value.replace(/\s/g, ""),
                     role: document.getElementById("user-role").value
                 };
-                if (utilisateursAutorises.some(u => u.tel === newUser.tel)) {
-                    alert("Un utilisateur avec ce numéro de téléphone existe déjà.");
-                    return;
+
+                if(editingUserId) {
+                    const docRef = doc(db, `artifacts/${appId}/public/data/users`, editingUserId);
+                    await updateDoc(docRef, userData);
+                } else {
+                     if (utilisateursAutorises.some(u => u.tel === userData.tel)) {
+                        alert("Un utilisateur avec ce numéro de téléphone existe déjà.");
+                        return;
+                    }
+                    await addDoc(collection(db, `artifacts/${appId}/public/data/users`), userData);
                 }
-                await addDoc(collection(db, `artifacts/${appId}/public/data/users`), newUser);
-                addUserForm.reset();
+                resetUserForm();
             });
             
+            // =========================
+            // RESET LOGIC
+            // =========================
+            const resetAccessBtn = document.getElementById('reset-access-btn');
+
+            async function clearCollection(collectionName) {
+                const collectionRef = collection(db, `artifacts/${appId}/public/data/${collectionName}`);
+                const snapshot = await getDocs(collectionRef);
+                if (snapshot.empty) return;
+                
+                const batch = writeBatch(db);
+                snapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+            }
+
+            resetBenevolesBtn.addEventListener('click', async () => {
+                showConfirmationModal("ATTENTION : Vous êtes sur le point de supprimer <strong>TOUS</strong> les bénévoles.<br><br>Cette action est IRRÉVERSIBLE.", async () => {
+                     try {
+                        await clearCollection('benevoles');
+                        alert("La base de données des bénévoles a été réinitialisée.");
+                    } catch (e) {
+                        console.error("Erreur: ", e);
+                        alert("Une erreur est survenue.");
+                    }
+                });
+            });
+
+            resetConcurrentsBtn.addEventListener('click', async () => {
+                showConfirmationModal("ATTENTION : Vous êtes sur le point de supprimer <strong>TOUS</strong> les concurrents et <strong>TOUS</strong> les temps de course.<br><br>Cette action est IRRÉVERSIBLE.", async () => {
+                    try {
+                        await clearCollection('concurrents');
+                        await setDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null, currentManche: 1 });
+                        alert("La base de données des concurrents et de la course a été réinitialisée.");
+                    } catch (e) {
+                        console.error("Erreur: ", e);
+                        alert("Une erreur est survenue.");
+                    }
+                });
+            });
+            
+            if(resetAccessBtn) {
+                resetAccessBtn.addEventListener('click', async () => {
+                    showConfirmationModal("ATTENTION : Vous allez supprimer <strong>TOUS</strong> les accès, <strong>SAUF</strong> le Super Administrateur.<br><br>Cette action est IRRÉVERSIBLE.", async () => {
+                        try {
+                            const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
+                            const snapshot = await getDocs(usersCollectionRef);
+                            const batch = writeBatch(db);
+                            snapshot.docs.forEach(doc => {
+                                const userData = doc.data();
+                                if (!(userData.nom === "POURCEL" && userData.prenom === "Romain" && userData.tel === "0613255651")) {
+                                    batch.delete(doc.ref);
+                                }
+                            });
+                            await batch.commit();
+                            alert("La base de données des accès a été réinitialisée.");
+                        } catch (e) {
+                            console.error("Erreur: ", e);
+                            alert("Une erreur est survenue.");
+                        }
+                    });
+                });
+            }
+
 
             // =========================
             // PERMISSIONS & FINAL SETUP
@@ -1075,18 +1504,18 @@
 
             function setupPermissions() {
                 const role = currentUser.role;
-                const tabsContainer = document.querySelector('nav[aria-label="Tabs"]');
                 let firstVisibleTabId = null;
 
-                const allTabs = ['tab-dashboard', 'tab-concurrents', 'tab-race', 'tab-access'];
+                const allTabs = ['tab-race', 'tab-concurrents', 'tab-dashboard', 'tab-admin'];
                 const visibleTabs = {
-                    'Organisation': ['tab-dashboard', 'tab-concurrents', 'tab-race'],
+                    'Organisation': ['tab-race', 'tab-concurrents', 'tab-dashboard'],
                     'Responsable Radio': ['tab-dashboard'],
-                    'MAIRE': ['tab-dashboard', 'tab-race'],
-                    'Chrono Départ': ['tab-dashboard', 'tab-race'],
-                    'Chrono Arrivée': ['tab-dashboard', 'tab-race'],
-                    'Bénévole': ['tab-dashboard', 'tab-race'],
-                    'Concurrent': ['tab-race']
+                    'MAIRE': ['tab-race', 'tab-dashboard'],
+                    'Chrono Départ': ['tab-race', 'tab-dashboard'],
+                    'Chrono Arrivée': ['tab-race', 'tab-dashboard'],
+                    'Bénévole': ['tab-race', 'tab-dashboard'],
+                    'Concurrent': ['tab-race'],
+                    'Gestionnaire': ['tab-concurrents', 'tab-dashboard']
                 };
 
                 allTabs.forEach(tabId => {
@@ -1099,7 +1528,7 @@
                         const tabElement = document.getElementById(tabId);
                         if (tabElement) tabElement.style.display = 'block';
                     });
-                    firstVisibleTabId = 'tab-dashboard';
+                    firstVisibleTabId = 'tab-race';
                 } else if (visibleTabs[role]) {
                     visibleTabs[role].forEach(tabId => {
                         const tabElement = document.getElementById(tabId);
@@ -1113,11 +1542,14 @@
                 }
                 
                 const canEditBenevoles = isSuperAdmin || role === 'Organisation';
-                const canEditConcurrents = isSuperAdmin || role === 'Organisation';
+                const canEditConcurrents = isSuperAdmin || role === 'Organisation' || role === 'Gestionnaire';
                 const canSeeChronoAndPodium = isSuperAdmin || role === 'Organisation' || role === 'Chrono Départ' || role === 'Chrono Arrivée' || role === 'MAIRE';
                 const canImportExport = isSuperAdmin || role === 'Organisation';
                 const isRadioManager = role === 'Responsable Radio';
                 const isMaire = role === 'MAIRE';
+                const isRestrictedUser = (currentUser.nom === 'FIEVET' && currentUser.prenom === 'Alexis') ||
+                                         (currentUser.nom === 'HAUTOT' && currentUser.prenom === 'CHRISTOPHE') ||
+                                         (currentUser.nom === 'LE BRAS' && currentUser.prenom === 'FRANK');
 
                 if (!canEditBenevoles && !isRadioManager) {
                     document.getElementById('add-benevole-btn').style.display = 'none';
@@ -1135,8 +1567,8 @@
 
 
                 if (!canEditConcurrents) {
-                    document.getElementById('add-concurrent-form').style.display = 'none';
-                    document.getElementById('save-concurrents-btn').style.display = 'none';
+                    addConcurrentBtn.style.display = 'none';
+                    saveConcurrentsBtn.style.display = 'none';
                 }
                 
                 if (!isSuperAdmin) {
@@ -1153,7 +1585,7 @@
                     document.getElementById('new-heat-btn').style.display = 'none';
                 }
 
-                if (!canSeeChronoAndPodium) {
+                if (!canSeeChronoAndPodium || isRestrictedUser) {
                     document.getElementById('chrono-container').style.display = 'none';
                     podiumBtn.style.display = 'none';
                     previousHeatBtn.style.display = 'none';
@@ -1181,6 +1613,30 @@
                     });
                 });
             });
+
+            // Admin Sub-tabs Logic
+            const showAccessBtn = document.getElementById('show-access-btn');
+            const showResetBtn = document.getElementById('show-reset-btn');
+            const adminAccessSection = document.getElementById('admin-access-section');
+            const adminResetSection = document.getElementById('admin-reset-section');
+
+            if(showAccessBtn) {
+                showAccessBtn.addEventListener('click', () => {
+                    showAccessBtn.classList.add('active');
+                    showResetBtn.classList.remove('active');
+                    adminAccessSection.style.display = 'block';
+                    adminResetSection.style.display = 'none';
+                });
+            }
+            if(showResetBtn) {
+                showResetBtn.addEventListener('click', () => {
+                    showResetBtn.classList.add('active');
+                    showAccessBtn.classList.remove('active');
+                    adminResetSection.style.display = 'block';
+                    adminAccessSection.style.display = 'none';
+                });
+            }
+
 
             // Credits Modal Logic
             document.querySelectorAll('.credits-btn-trigger').forEach(btn => {
@@ -1229,8 +1685,7 @@
                     try {
                         const imported = JSON.parse(e.target.result);
                         if (imported.benevoles && imported.concurrents && imported.utilisateurs) {
-                            if (confirm("Voulez-vous vraiment remplacer toutes les données actuelles par celles du fichier importé ? Cette action est irréversible et supprimera les données en ligne.")) {
-                                
+                            showConfirmationModal("Voulez-vous vraiment remplacer toutes les données actuelles par celles du fichier importé ?<br><br><strong>Cette action est irréversible.</strong>", async () => {
                                 // Protection du Super Admin
                                 let superAdminInImport = imported.utilisateurs.find(u => u.nom === "POURCEL" && u.prenom === "Romain" && u.tel === "0613255651");
                                 if (superAdminInImport) {
@@ -1239,7 +1694,6 @@
                                     imported.utilisateurs.push({ nom: "POURCEL", prenom: "Romain", tel: "0613255651", role: "Super Admin" });
                                 }
                                 
-                                // Clear existing data
                                 const collectionsToDelete = ['benevoles', 'concurrents', 'users'];
                                 for (const coll of collectionsToDelete) {
                                     const snapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/${coll}`));
@@ -1248,7 +1702,6 @@
                                     await deleteBatch.commit();
                                 }
 
-                                // Import new data
                                 const importBatch = writeBatch(db);
                                 imported.benevoles.forEach(item => {
                                     const docRef = doc(collection(db, `artifacts/${appId}/public/data/benevoles`));
@@ -1266,12 +1719,12 @@
                                 
                                 alert("Données importées avec succès ! La page va se recharger.");
                                 location.reload();
-                            }
+                            });
                         } else {
-                            alert("Fichier invalide ou mal formaté. Le fichier doit contenir les clés 'benevoles', 'concurrents' et 'utilisateurs'.");
+                            alert("Fichier invalide ou mal formaté.");
                         }
                     } catch (error) {
-                        alert("Erreur lors de la lecture du fichier. Assurez-vous que c'est un fichier de sauvegarde valide.");
+                        alert("Erreur lors de la lecture du fichier.");
                         console.error("Erreur d'importation:", error);
                     }
                     importFile.value = '';
@@ -1284,22 +1737,37 @@
                 data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderBenevolesTable();
             });
-            onSnapshot(collection(db, `artifacts/${appId}/public/data/concurrents`), (snapshot) => {
+             onSnapshot(collection(db, `artifacts/${appId}/public/data/concurrents`), (snapshot) => {
                 concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderAllConcurrentsView();
+                populateConcurrentsDatalist();
             });
             onSnapshot(chronoDocRef, (snapshot) => {
                 const chronoData = snapshot.data();
                 clearInterval(chronoInterval);
+                chronoSearchInput.disabled = false;
 
-                if (chronoData && chronoData.running) {
-                    const startTime = chronoData.startTime;
-                    chronoInterval = setInterval(() => updateChronoDisplay(startTime), 10);
-                    concurrentSelect.value = chronoData.currentConcurrent;
-                    updateChronoButtons(true);
+                if (chronoData) {
+                    currentManche = chronoData.currentManche || 1;
+                    renderRaceTable(); // Re-render table to reflect current manche in title and logic
+                    
+                    if (chronoData.running) {
+                        const startTime = chronoData.startTime;
+                        chronoInterval = setInterval(() => updateChronoDisplay(startTime), 10);
+                        
+                        const runningConcurrent = concurrents.find(c => c.numero == chronoData.currentConcurrent);
+                        if (runningConcurrent) {
+                            selectedConcurrentDisplay.textContent = `Course : ${runningConcurrent.nom}`;
+                            chronoSearchInput.disabled = true;
+                        }
+
+                        updateChronoButtons(true);
+                    } else {
+                        chronoDisplay.textContent = "00:00:00";
+                        updateChronoButtons(false);
+                    }
                 } else {
-                    chronoDisplay.textContent = "00:00:00";
-                    updateChronoButtons(false);
+                    setDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null, currentManche: 1 });
                 }
             });
 
@@ -1313,6 +1781,104 @@
             setupPermissions();
         }
         document.addEventListener('DOMContentLoaded', authenticateAndStart);
+
+        function showTutorialModalIfNeeded() {
+            if (!localStorage.getItem('tutorialShown')) {
+                document.getElementById('tutorial-modal').style.display = 'flex';
+            }
+        }
+
+        document.getElementById('close-tutorial-btn').addEventListener('click', () => {
+            document.getElementById('tutorial-modal').style.display = 'none';
+            localStorage.setItem('tutorialShown', 'true');
+        });
+
+        document.getElementById('show-tutorial-btn').addEventListener('click', () => {
+            displayTutorialForRole(isSuperAdmin ? 'Super Admin' : currentUser.role);
+            document.getElementById('tutorial-modal').style.display = 'none';
+            localStorage.setItem('tutorialShown', 'true');
+        });
+
+        function displayTutorialForRole(role) {
+            let tutorialContent = '';
+            let tutorialTitle = 'Guide Rapide';
+
+            switch (role) {
+                case 'Super Admin':
+                case 'Organisation':
+                    tutorialTitle = "Guide Complet pour l'Organisation";
+                    tutorialContent = `
+                        <h3>1. Gérer les Bénévoles</h3>
+                        <p>Ajoutez, modifiez et assignez des fonctions et du matériel.</p>
+                        <p><strong>Super Admin :</strong> Vous seul pouvez gérer les accès via la colonne "Accès".</p>
+                        <h3>2. Gérer les Concurrents</h3>
+                        <p>Ajoutez des concurrents et mettez à jour l'état de leurs documents.</p>
+                        <h3>3. Gérer la Course</h3>
+                        <p>Utilisez le chrono, saisissez des temps manuellement et gérez les manches.</p>
+                        <h3>4. Gérer les Accès (Super Admin)</h3>
+                        <p>Créez et supprimez les accès pour tous les utilisateurs.</p>
+                    `;
+                    break;
+                case 'Responsable Radio':
+                    tutorialTitle = "Guide pour le Responsable Radio";
+                    tutorialContent = `
+                        <h3>Votre Mission</h3>
+                        <p>Vous pouvez consulter la liste des bénévoles et cocher/décocher les cases pour le matériel (Radios, Sifflets) pour suivre qui a quoi.</p>
+                        <p>Toutes les autres informations sont en lecture seule.</p>
+                    `;
+                    break;
+                case 'MAIRE':
+                     tutorialTitle = "Guide de Consultation";
+                     tutorialContent = `
+                        <h3>Accès en Consultation</h3>
+                        <p>Vous avez un accès en lecture seule aux onglets "Bénévoles & Matériel" et "Gestion Course" pour suivre l'organisation et le déroulement de l'événement en temps réel.</p>
+                    `;
+                    break;
+                 case 'Chrono Départ':
+                 case 'Chrono Arrivée':
+                    tutorialTitle = "Guide pour l'Équipe Chrono";
+                    tutorialContent = `
+                        <h3>Utilisation du Chronomètre</h3>
+                        <p><strong>Chrono Départ :</strong> Sélectionnez un concurrent et cliquez sur "Démarrer" au moment exact du départ.</p>
+                        <p><strong>Chrono Arrivée :</strong> Vous verrez le temps défiler en direct. Cliquez sur "Arrêter et Enregistrer" dès que le concurrent franchit la ligne.</p>
+                        <p>En cas d'erreur, vous pouvez cliquer sur un temps dans le tableau pour le corriger manuellement.</p>
+                    `;
+                    break;
+                default: // Bénévole & Concurrent
+                    tutorialTitle = "Guide du Participant";
+                    tutorialContent = `
+                        <h3>Consulter les Informations</h3>
+                        <p>Bienvenue ! Vous pouvez utiliser ce tableau de bord pour :</p>
+                        <ul>
+                            <li>- Consulter la liste des bénévoles et leurs affectations.</li>
+                            <li>- Suivre le classement et les temps de la course en direct.</li>
+                        </ul>
+                    `;
+                    break;
+            }
+
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(`
+                <html>
+                    <head>
+                        <title>${tutorialTitle}</title>
+                        <style>
+                            body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
+                            h3 { color: #3b82f6; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 20px; }
+                            p, li { font-size: 14px; }
+                            strong { color: #1f2937; }
+                            ul { padding-left: 20px; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>${tutorialTitle}</h1>
+                        ${tutorialContent}
+                    </body>
+                </html>
+            `);
+            newWindow.document.close();
+        }
+
     </script>
 </body>
 </html>
