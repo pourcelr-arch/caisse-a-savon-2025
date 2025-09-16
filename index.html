@@ -535,7 +535,7 @@
             let editingBenevoleId = null;
             let editingConcurrentId = null;
             let editingUserId = null;
-            let selectedConcurrentForChrono = null;
+            let modalTimeout = null;
             
             const creditsButtonHTML = `<div class="text-center text-gray-400 text-xs my-2"><button class="credits-btn-trigger hover:underline text-blue-500">Application web créée Par</button></div>`;
 
@@ -1116,8 +1116,10 @@
                 chronoDisplay.textContent = formatTime(new Date().getTime() - startTime);
             }
 
-            function updateChronoButtons(chronoIsRunning) {
-                const concurrentSelected = !!selectedConcurrentForChrono;
+            function updateChronoButtons(chronoData) {
+                const chronoIsRunning = chronoData.running;
+                const concurrentSelected = !!chronoData.selectedConcurrent;
+                
                 const canStart = isSuperAdmin || currentUser.role === 'Organisation' || currentUser.role === 'Chrono Départ';
                 const canStop = isSuperAdmin || currentUser.role === 'Organisation' || currentUser.role === 'Chrono Arrivée';
                 const canReset = isSuperAdmin || currentUser.role === 'Organisation' || currentUser.role === 'Chrono Départ';
@@ -1128,19 +1130,21 @@
             }
 
             async function startChrono() {
-                const selectedConcurrent = selectedConcurrentForChrono;
+                const chronoSnapshot = await getDoc(chronoDocRef);
+                const chronoData = chronoSnapshot.data();
+                const selectedConcurrent = chronoData ? chronoData.selectedConcurrent : null;
+                
                 if (!selectedConcurrent) {
                     showConfirmationModal("Veuillez sélectionner un concurrent avant de démarrer.", () => {}, "Aucun Concurrent Sélectionné");
                     return;
                 }
+
                 await updateDoc(chronoDocRef, {
                     running: true,
                     startTime: new Date().getTime(),
-                    currentConcurrent: selectedConcurrent
+                    currentConcurrent: selectedConcurrent,
+                    selectedConcurrent: null
                 });
-                selectedConcurrentForChrono = null;
-                selectedConcurrentDisplay.textContent = '';
-                chronoSearchInput.value = '';
             }
 
             async function stopChrono() {
@@ -1155,28 +1159,28 @@
                 const concurrent = concurrents.find(c => c.numero == concurrentNumero);
 
                 if (concurrent) {
-                    // Afficher le temps immédiatement pour une meilleure réactivité
-                    document.getElementById('time-confirm-concurrent').textContent = `N°${concurrent.numero} - ${concurrent.nom}`;
-                    document.getElementById('time-confirm-time').textContent = formatTime(difference);
-                    timeConfirmationModal.style.display = 'flex';
-
-                    // Mettre à jour la base de données en arrière-plan
                     const manches = concurrent.manches;
                     manches[currentManche - 1] = difference;
                     await updateDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, concurrent.id), { manches: manches });
-                }
 
-                await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null });
-                selectedConcurrentForChrono = null;
-                selectedConcurrentDisplay.textContent = '';
-                chronoSearchInput.value = '';
+                    await updateDoc(chronoDocRef, {
+                        running: false,
+                        startTime: null,
+                        currentConcurrent: null,
+                        selectedConcurrent: null,
+                        lastRecordedTime: {
+                            nom: concurrent.nom,
+                            numero: concurrent.numero,
+                            time: difference
+                        }
+                    });
+                } else {
+                    await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null, selectedConcurrent: null });
+                }
             }
 
             async function resetChrono() {
-                await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null });
-                selectedConcurrentForChrono = null;
-                selectedConcurrentDisplay.textContent = '';
-                chronoSearchInput.value = '';
+                await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null, selectedConcurrent: null });
             }
 
             async function startNewHeat() {
@@ -1371,30 +1375,31 @@
                 editingConcurrentId = null;
             });
             
-            chronoSearchInput.addEventListener('input', () => {
+            chronoSearchInput.addEventListener('input', async () => {
                 const value = chronoSearchInput.value;
                 const selectedOption = Array.from(concurrentsDatalist.options).find(opt => opt.value === value);
+                let numero = null;
 
                 if (selectedOption) {
                     const match = value.match(/^N°(\d+)/);
                     if (match) {
-                        const numero = match[1];
-                        const concurrent = concurrents.find(c => c.numero == numero);
-                        if (concurrent) {
-                            selectedConcurrentForChrono = numero;
-                            selectedConcurrentDisplay.textContent = `Au départ : ${concurrent.nom}`;
-                        }
+                        numero = match[1];
                     }
-                } else {
-                    selectedConcurrentForChrono = null;
-                    selectedConcurrentDisplay.textContent = '';
                 }
-                updateChronoButtons(false);
+                
+                await updateDoc(chronoDocRef, { selectedConcurrent: numero });
             });
             
-            closeTimeConfirmModalBtn.addEventListener('click', () => {
+            async function clearLastRecordedTime() {
+                clearTimeout(modalTimeout); 
                 timeConfirmationModal.style.display = 'none';
-            });
+                const chronoSnapshot = await getDoc(chronoDocRef);
+                if (chronoSnapshot.data() && chronoSnapshot.data().lastRecordedTime) {
+                    await updateDoc(chronoDocRef, { lastRecordedTime: null });
+                }
+            }
+
+            closeTimeConfirmModalBtn.addEventListener('click', clearLastRecordedTime);
 
             previousHeatBtn.addEventListener('click', () => showGrid('previous'));
             podiumBtn.addEventListener('click', () => showGrid('podium'));
@@ -1673,7 +1678,6 @@
                     toggleTelCheckbox.parentElement.style.display = 'none';
                 }
 
-                updateChronoButtons(false); // Initial state
             }
             
             // Tabs switching logic
@@ -1818,32 +1822,69 @@
                 renderAllConcurrentsView();
                 populateConcurrentsDatalist();
             });
+            
             onSnapshot(chronoDocRef, (snapshot) => {
                 const chronoData = snapshot.data();
                 clearInterval(chronoInterval);
-                chronoSearchInput.disabled = false;
 
-                if (chronoData) {
-                    currentManche = chronoData.currentManche || 1;
-                    renderRaceTable(); // Re-render table to reflect current manche in title and logic
-                    
-                    if (chronoData.running) {
-                        const startTime = chronoData.startTime;
-                        chronoInterval = setInterval(() => updateChronoDisplay(startTime), 10);
-                        
-                        const runningConcurrent = concurrents.find(c => c.numero == chronoData.currentConcurrent);
-                        if (runningConcurrent) {
-                            selectedConcurrentDisplay.textContent = `Course : ${runningConcurrent.nom}`;
-                            chronoSearchInput.disabled = true;
-                        }
+                if (!chronoData) {
+                    setDoc(chronoDocRef, { 
+                        running: false, 
+                        startTime: null, 
+                        currentConcurrent: null, 
+                        selectedConcurrent: null, 
+                        currentManche: 1,
+                        lastRecordedTime: null
+                    });
+                    return;
+                }
 
-                        updateChronoButtons(true);
-                    } else {
-                        chronoDisplay.textContent = "00:00:00";
-                        updateChronoButtons(false);
-                    }
+                currentManche = chronoData.currentManche || 1;
+                renderRaceTable();
+                updateChronoButtons(chronoData);
+                
+                clearTimeout(modalTimeout);
+                if (chronoData.lastRecordedTime) {
+                    const recordedData = chronoData.lastRecordedTime;
+                    document.getElementById('time-confirm-concurrent').textContent = `N°${recordedData.numero} - ${recordedData.nom}`;
+                    document.getElementById('time-confirm-time').textContent = formatTime(recordedData.time);
+                    timeConfirmationModal.style.display = 'flex';
+                    modalTimeout = setTimeout(() => {
+                        clearLastRecordedTime();
+                    }, 10000);
                 } else {
-                    setDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null, currentManche: 1 });
+                    timeConfirmationModal.style.display = 'none';
+                }
+
+                if (chronoData.running && chronoData.startTime && chronoData.currentConcurrent) {
+                    const startTime = chronoData.startTime;
+                    chronoInterval = setInterval(() => updateChronoDisplay(startTime), 10);
+                    
+                    const runningConcurrent = concurrents.find(c => c.numero == chronoData.currentConcurrent);
+                    if (runningConcurrent) {
+                        selectedConcurrentDisplay.textContent = `Course : ${runningConcurrent.nom}`;
+                    }
+                    
+                    chronoSearchInput.value = '';
+                    chronoSearchInput.disabled = true;
+                } else {
+                    chronoDisplay.textContent = "00:00:00";
+                    chronoSearchInput.disabled = false;
+
+                    if (chronoData.selectedConcurrent) {
+                        const selected = concurrents.find(c => c.numero == chronoData.selectedConcurrent);
+                        if (selected) {
+                            selectedConcurrentDisplay.textContent = `Au départ : ${selected.nom}`;
+                            if(document.activeElement !== chronoSearchInput) {
+                                 chronoSearchInput.value = `N°${selected.numero} - ${selected.nom}`;
+                            }
+                        }
+                    } else {
+                        selectedConcurrentDisplay.textContent = '';
+                         if(document.activeElement !== chronoSearchInput) {
+                            chronoSearchInput.value = '';
+                         }
+                    }
                 }
             });
 
@@ -2012,5 +2053,4 @@
     </script>
 </body>
 </html>
-
 
