@@ -15,7 +15,7 @@
         .text-red-500 {
             color: #ef4444;
         }
-        #benevoles-table, #concurrents-table, #concurrents-admin-table, #access-table {
+        #benevoles-table, #concurrents-table, #concurrents-admin-table, #access-table, #race-table {
             table-layout: auto;
             width: max-content;
             min-width: 100%;
@@ -51,11 +51,16 @@
         }
         .modal-content, .login-content, .starting-grid-content {
             background-color: #fff;
-            padding: 2rem;
+            padding: 1.5rem;
             border-radius: 1rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             width: 90%;
             max-width: 800px;
+        }
+        @media (min-width: 768px) {
+            .modal-content, .login-content, .starting-grid-content {
+                padding: 2rem;
+            }
         }
         .modal-header {
             display: flex;
@@ -66,8 +71,12 @@
             margin-bottom: 1rem;
         }
         .modal-header h2 {
-            font-size: 1.5rem;
-            font-weight: 600;
+            font-size: 1.25rem;
+        }
+         @media (min-width: 768px) {
+            .modal-header h2 {
+                font-size: 1.5rem;
+            }
         }
         .modal-close-button {
             background: none;
@@ -119,9 +128,43 @@
             border-color: #3b82f6;
             background-color: #eff6ff;
         }
+
+        /* Styles pour les colonnes fixes (sticky) du tableau de course */
+        #race-table th:nth-child(1), #race-table td:nth-child(1),
+        #race-table th:nth-child(2), #race-table td:nth-child(2),
+        #race-table th:nth-child(3), #race-table td:nth-child(3) {
+            position: -webkit-sticky; /* Pour Safari */
+            position: sticky;
+            z-index: 10;
+        }
+
+        #race-table th:nth-child(1), #race-table td:nth-child(1) { left: 0; }
+        #race-table th:nth-child(2), #race-table td:nth-child(2) { left: 50px; }
+        #race-table th:nth-child(3), #race-table td:nth-child(3) { left: 110px; }
+
+        #race-table thead th:nth-child(1),
+        #race-table thead th:nth-child(2),
+        #race-table thead th:nth-child(3) {
+            background-color: #e5e7eb; /* Corresponds to bg-gray-200 */
+        }
+
+        #race-table tbody td:nth-child(1),
+        #race-table tbody td:nth-child(2),
+        #race-table tbody td:nth-child(3) {
+            background-color: #ffffff; /* Corresponds to bg-white */
+        }
+
+        #race-table th:nth-child(3),
+        #race-table td:nth-child(3) {
+            border-right: 2px solid #d1d5db; /* Corresponds to border-gray-300 */
+        }
+
+        #race-table th:nth-child(1), #race-table td:nth-child(1) { width: 50px; }
+        #race-table th:nth-child(2), #race-table td:nth-child(2) { width: 60px; }
+        #race-table th:nth-child(3), #race-table td:nth-child(3) { width: 200px; }
     </style>
 </head>
-<body class="p-6">
+<body class="p-2 sm:p-6">
 
     <!-- ÉCRAN DE CONNEXION -->
     <div id="login-screen">
@@ -170,13 +213,13 @@
 
     <!-- APPLICATION PRINCIPALE -->
     <div id="main-app" class="max-w-7xl mx-auto" style="display: none;">
-        <div class="bg-white shadow-xl rounded-2xl p-6 mb-4">
-             <div class="flex justify-between items-center mb-2">
+        <div class="bg-white shadow-xl rounded-2xl p-4 md:p-6 mb-4">
+             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Tableau de bord - Caisse à Savon</h1>
                     <p class="text-gray-400 text-xs sm:text-sm">Connecté en tant que: <span id="user-info" class="font-semibold"></span></p>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     <input type="file" id="import-file" class="hidden" accept=".json">
                     <button id="import-btn" class="text-sm bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200">Importer</button>
                     <button id="export-btn" class="text-sm bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200">Exporter</button>
@@ -186,8 +229,8 @@
         </div>
         
         <div class="mb-4 border-b border-gray-200">
-            <nav class="flex space-x-4" aria-label="Tabs">
-                <button id="tab-race" class="tab-button active py-4 px-1 border-b-2 font-medium text-sm">
+            <nav class="flex space-x-2 sm:space-x-4 overflow-x-auto pb-1" aria-label="Tabs">
+                <button id="tab-race" class="tab-button active py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap">
                     <span class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -195,7 +238,7 @@
                         Chrono
                     </span>
                 </button>
-                <button id="tab-concurrents" class="tab-button py-4 px-1 border-b-2 font-medium text-sm">
+                <button id="tab-concurrents" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap">
                     <span class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -203,19 +246,19 @@
                         Concurrents
                     </span>
                 </button>
-                <button id="tab-dashboard" class="tab-button py-4 px-1 border-b-2 font-medium text-sm">
+                <button id="tab-dashboard" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap">
                     <span class="flex items-center gap-2">
                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                         </svg>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                          </svg>
                          Bénévoles & Matériel
                     </span>
                 </button>
-                <button id="tab-admin" class="tab-button py-4 px-1 border-b-2 font-medium text-sm text-red-600" style="display: none;">
+                <button id="tab-admin" class="tab-button py-4 px-1 border-b-2 font-medium text-sm text-red-600 whitespace-nowrap" style="display: none;">
                     <span class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                           <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                           <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                         Administration
                     </span>
@@ -338,7 +381,7 @@
 
         // <!-- ============================================================================== -->
         // <!-- ================== ZONE À MODIFIER / HIGHLIGHTED AREA ================== -->
-        // <!-- VEUILLEZ REMPLACER LE BLOC CI-DESSOUS PAR VOTRE CONFIGURATION PERSONNELLE     -->
+        // <!-- VEUILLEZ REMPLACER LE BLOC CI-DESSOUS PAR VOTRE CONFIGURATION PERSONNELLE      -->
         // <!-- OBTENUE DEPUIS LA CONSOLE FIREBASE LORS DE L'AJOUT DE VOTRE APPLICATION WEB. -->
         // <!-- ============================================================================== -->
         const firebaseConfig = {
@@ -397,7 +440,7 @@
                             <li>Copiez à nouveau et avec attention l'objet de configuration <code>firebaseConfig</code>.</li>
                             <li>Collez-le dans le fichier <code>index.html</code> en vous assurant de remplacer entièrement le bloc d'exemple.</li>
                         </ol>
-                     `;
+                       `;
                 } else {
                     errorHtml = `<p>Une erreur inattendue est survenue. Veuillez vérifier la console du navigateur pour plus de détails.</p><p class="mt-2 text-sm text-gray-500">Code d'erreur : ${error.code}</p>`;
                 }
@@ -411,28 +454,28 @@
             if (savedUserStr) {
                 const savedUser = JSON.parse(savedUserStr);
                  const foundUser = utilisateursAutorises.find(user => user.id === savedUser.id);
-                 if(foundUser){
-                    currentUser = foundUser;
-                    isSuperAdmin = (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651") || currentUser.role === 'Super Admin';
-                    loginScreen.style.display = 'none';
-                    mainApp.style.display = 'block';
-                    userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`;
-                    startAppLogic();
-                 } else {
-                    localStorage.removeItem('currentUser');
-                 }
+                  if(foundUser){
+                      currentUser = foundUser;
+                      isSuperAdmin = (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651") || currentUser.role === 'Super Admin';
+                      loginScreen.style.display = 'none';
+                      mainApp.style.display = 'block';
+                      userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`;
+                      startAppLogic();
+                   } else {
+                       localStorage.removeItem('currentUser');
+                   }
             }
         }
 
         function loadAccessData() {
             return new Promise((resolve, reject) => {
                 const usersCollection = collection(db, `artifacts/${appId}/public/data/users`);
-                const unsubscribe = onSnapshot(usersCollection, 
+                const unsubscribe = onSnapshot(usersCollection,
                     (snapshot) => {
                         utilisateursAutorises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         console.log("Utilisateurs chargés depuis Firestore :", JSON.parse(JSON.stringify(utilisateursAutorises)));
                         resolve();
-                    }, 
+                    },
                     (error) => {
                         console.error("Erreur de lecture (Firestore):", error);
                         if(error.code === 'permission-denied') {
@@ -450,8 +493,8 @@
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         }
 
-        loginForm.addEventListener('submit', (e) => { 
-            e.preventDefault(); 
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
             const nomInput = document.getElementById('login-nom').value.trim();
             const prenomInput = document.getElementById('login-prenom').value.trim();
             const tel = document.getElementById('login-tel').value.replace(/\s/g, '');
@@ -467,24 +510,24 @@
                        String(user.tel).replace(/\s/g, '') === tel;
             });
 
-            if (foundUser) { 
-                currentUser = foundUser; 
+            if (foundUser) {
+                currentUser = foundUser;
                 isSuperAdmin = (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651") || currentUser.role === 'Super Admin';
-                               
-                loginScreen.style.display = 'none'; 
-                mainApp.style.display = 'block'; 
-                userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`; 
+                        
+                loginScreen.style.display = 'none';
+                mainApp.style.display = 'block';
+                userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`;
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                startAppLogic(); 
+                startAppLogic();
                 showTutorialModalIfNeeded();
-            } else { 
-                loginError.classList.remove('hidden'); 
-            } 
+            } else {
+                loginError.classList.remove('hidden');
+            }
         });
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('currentUser');
             localStorage.removeItem('tutorialShown');
-            location.reload(); 
+            location.reload();
         });
 
         // SECTION 2: LOGIQUE DE L'APPLICATION
@@ -526,11 +569,11 @@
             }
 
             // -- Inject HTML content for tabs --
-            document.getElementById('content-dashboard').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-6"><h2 class="text-xl font-bold text-gray-800 mb-4">Suivi du matériel</h2><div class="mb-8 p-4 bg-yellow-50 rounded-xl shadow-inner border-l-4 border-yellow-400 flex flex-wrap justify-between items-center text-sm md:text-base"><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Radios:</span><span class="font-bold text-blue-600" id="radios-distribuees">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="radios-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquantes:</span><span class="font-bold text-lg text-red-500" id="radios-manquantes">0</span></div></div><div class="flex-grow"></div><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Sifflets:</span><span class="font-bold text-blue-600" id="sifflets-distribues">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="sifflets-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquants:</span><span class="font-bold text-lg text-red-500" id="sifflets-manquants">0</span></div></div><div class="flex-grow"></div><div class="flex items-center space-x-2 mt-4 md:mt-0"><span class="font-medium text-gray-700">Appareils manquants:</span><span class="font-bold text-2xl text-red-500" id="appareils-manquants">0</span></div></div><h2 class="text-xl font-bold text-gray-800 mb-4">Liste des bénévoles</h2><div class="flex flex-col lg:flex-row justify-between items-center mb-4 gap-4"><div class="flex flex-wrap items-end gap-4"><button id="add-benevole-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">+ Ajouter</button></div><div class="w-full lg:w-auto flex-grow flex justify-center items-center gap-2"><input type="text" id="filter-input" placeholder="Rechercher par nom..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full max-w-xs"><select id="filter-fonction" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm"></select><select id="filter-lieu" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm"></select></div><div class="flex items-center gap-4"><div class="flex items-center gap-2" id="missing-info-container"><input type="checkbox" id="filter-missing-info" class="form-checkbox h-4 w-4 text-red-600 rounded"><label for="filter-missing-info" class="text-sm font-medium text-gray-700 select-none">Infos manquantes ❌</label></div><div class="flex items-center gap-2"><input type="checkbox" id="toggleTel" class="form-checkbox h-4 w-4 text-blue-600 rounded"><label for="toggleTel" class="text-sm font-medium text-gray-700 select-none">Masquer Tél.</label></div><div class="flex items-center gap-2"><span id="save-message" class="text-green-600 font-bold"></span><button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table class="divide-y divide-gray-200" id="benevoles-table"><thead class="bg-gray-200 sticky top-0 z-10"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider rounded-tl-xl">Nom & Prénom</th><th data-column="tel" class="px-4 py-3 text-left text-xs font-bold uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Jours de présence</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Lieu d'affectation 📍</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Fonction 💼</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Matériel (D/R)</th><th data-column="zello" class="px-4 py-3 text-left text-xs font-bold uppercase">Zello 📻</th><th data-column="acces" class="px-4 py-3 text-left text-xs font-bold uppercase">Accès</th><th data-column="action" class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
-            document.getElementById('content-concurrents').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-6"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Liste des Concurrents</h2><input type="text" id="filter-concurrents-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-4"><button id="add-concurrent-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">+ Ajouter un Concurrent</button><div><span id="save-concurrents-message" class="text-green-600 font-bold mr-4"></span><button id="save-concurrents-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-4 rounded-xl overflow-x-auto shadow-inner"><table id="concurrents-admin-table" class="divide-y divide-gray-200"><thead class="bg-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tl-xl">N°</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Concurrent</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Enfant</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Dossier Inscription</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Assurance</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Paiement Cotisation</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Équipements Sécurité</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Contrôle Tech.</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="concurrents-admin-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
-            document.getElementById('content-race').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-6"><div id="chrono-container" class="mb-6 p-6 bg-gray-50 rounded-2xl shadow-inner"><div class="text-center mb-4"><h2 id="current-manche-display" class="text-3xl font-bold text-blue-600"></h2></div><div class="max-w-md mx-auto"><div class="mb-4"><label for="chrono-search-input" class="block text-sm font-medium text-gray-700 mb-1">Concurrent au départ (par N° ou nom)</label><input type="text" id="chrono-search-input" list="concurrents-datalist" placeholder="Rechercher..." class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"><datalist id="concurrents-datalist"></datalist></div><div id="selected-concurrent-display" class="text-center font-bold text-xl text-gray-700 h-8 mb-4"></div><div id="chrono-display" class="text-5xl font-bold text-center text-blue-600 bg-white p-4 rounded-xl mb-4 shadow">00:00:00</div><div class="grid grid-cols-2 gap-3 mt-auto"><button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Démarrer</button><button id="stop-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Arrêter et Enregistrer</button><button id="reset-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200 col-span-2">Réinitialiser</button></div></div></div><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Classement de la Course</h2><input type="text" id="filter-race-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-2 flex-wrap justify-end"><button id="reset-race-btn" class="bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Réinitialiser Course</button><button id="new-heat-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Manche Suivante</button><button id="previous-heat-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Temps Manche Précédente</button><button id="podium-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-xl transition duration-200">Podium</button></div></div><div id="race-table-container" class="bg-gray-100 p-4 rounded-xl shadow-inner flex overflow-hidden"><div class="flex-shrink-0 z-10 bg-gray-100"><table id="concurrents-table-left" class="divide-y divide-gray-200"><thead id="concurrents-table-head-left" class="bg-gray-200 sticky top-0"></thead><tbody id="concurrents-table-body-left" class="bg-white divide-y divide-gray-200"></tbody></table></div><div id="race-table-scrollable-middle" class="flex-grow overflow-x-auto"><table id="concurrents-table-middle" class="divide-y divide-gray-200"><thead id="concurrents-table-head-middle" class="bg-gray-200 sticky top-0"></thead><tbody id="concurrents-table-body-middle" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex-shrink-0 z-10 bg-gray-100"><table id="concurrents-table-right" class="divide-y divide-gray-200"><thead id="concurrents-table-head-right" class="bg-gray-200 sticky top-0"></thead><tbody id="concurrents-table-body-right" class="bg-white divide-y divide-gray-200"></tbody></table></div></div></div>` + creditsButtonHTML;
+            document.getElementById('content-dashboard').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><h2 class="text-xl font-bold text-gray-800 mb-4">Suivi du matériel</h2><div class="mb-8 p-4 bg-yellow-50 rounded-xl shadow-inner border-l-4 border-yellow-400 flex flex-wrap justify-between items-center text-sm md:text-base gap-4"><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Radios:</span><span class="font-bold text-blue-600" id="radios-distribuees">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="radios-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquantes:</span><span class="font-bold text-lg text-red-500" id="radios-manquantes">0</span></div></div><div class="flex-grow"></div><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Sifflets:</span><span class="font-bold text-blue-600" id="sifflets-distribues">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="sifflets-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquants:</span><span class="font-bold text-lg text-red-500" id="sifflets-manquants">0</span></div></div><div class="flex-grow"></div><div class="flex items-center space-x-2 mt-4 md:mt-0"><span class="font-medium text-gray-700">Appareils manquants:</span><span class="font-bold text-2xl text-red-500" id="appareils-manquants">0</span></div></div><h2 class="text-xl font-bold text-gray-800 mb-4">Liste des bénévoles</h2><div class="flex flex-col lg:flex-row justify-between items-center mb-4 gap-4"><div class="flex flex-wrap items-end gap-4"><button id="add-benevole-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">+ Ajouter</button></div><div class="w-full lg:w-auto flex-grow flex flex-col sm:flex-row justify-center items-center gap-2"><input type="text" id="filter-input" placeholder="Rechercher par nom..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full max-w-xs"><select id="filter-fonction" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></select><select id="filter-lieu" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></select></div><div class="flex items-center gap-4 flex-wrap"><div class="flex items-center gap-2" id="missing-info-container"><input type="checkbox" id="filter-missing-info" class="form-checkbox h-4 w-4 text-red-600 rounded"><label for="filter-missing-info" class="text-sm font-medium text-gray-700 select-none">Infos manquantes ❌</label></div><div class="flex items-center gap-2"><input type="checkbox" id="toggleTel" class="form-checkbox h-4 w-4 text-blue-600 rounded"><label for="toggleTel" class="text-sm font-medium text-gray-700 select-none">Masquer Tél.</label></div><div class="flex items-center gap-2"><span id="save-message" class="text-green-600 font-bold"></span><button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-2 md:p-4 rounded-xl overflow-x-auto shadow-inner"><table class="divide-y divide-gray-200" id="benevoles-table"><thead class="bg-gray-200 sticky top-0 z-10"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider rounded-tl-xl">Nom & Prénom</th><th data-column="tel" class="px-4 py-3 text-left text-xs font-bold uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Jours de présence</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Lieu d'affectation 📍</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Fonction 💼</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Matériel (D/R)</th><th data-column="zello" class="px-4 py-3 text-left text-xs font-bold uppercase">Zello 📻</th><th data-column="acces" class="px-4 py-3 text-left text-xs font-bold uppercase">Accès</th><th data-column="action" class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
+            document.getElementById('content-concurrents').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Liste des Concurrents</h2><input type="text" id="filter-concurrents-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-4"><button id="add-concurrent-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">+ Ajouter un Concurrent</button><div><span id="save-concurrents-message" class="text-green-600 font-bold mr-4"></span><button id="save-concurrents-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-2 md:p-4 rounded-xl overflow-x-auto shadow-inner"><table id="concurrents-admin-table" class="divide-y divide-gray-200"><thead class="bg-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tl-xl">N°</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Concurrent</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Enfant</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Dossier Inscription</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Assurance</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Paiement Cotisation</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Équipements Sécurité</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Contrôle Tech.</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="concurrents-admin-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
+            document.getElementById('content-race').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><div id="chrono-container" class="mb-6 p-4 md:p-6 bg-gray-50 rounded-2xl shadow-inner"><div class="text-center mb-4"><h2 id="current-manche-display" class="text-3xl font-bold text-blue-600"></h2></div><div class="max-w-md mx-auto"><div class="mb-4"><label for="chrono-search-input" class="block text-sm font-medium text-gray-700 mb-1">Concurrent au départ (par N° ou nom)</label><input type="text" id="chrono-search-input" list="concurrents-datalist" placeholder="Rechercher..." class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"><datalist id="concurrents-datalist"></datalist></div><div id="selected-concurrent-display" class="text-center font-bold text-xl text-gray-700 h-8 mb-4"></div><div id="chrono-display" class="text-5xl font-bold text-center text-blue-600 bg-white p-4 rounded-xl mb-4 shadow">00:00:00</div><div class="grid grid-cols-2 gap-3 mt-auto"><button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Démarrer</button><button id="stop-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Arrêter et Enregistrer</button><button id="reset-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200 col-span-2">Réinitialiser</button></div></div></div><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Classement de la Course</h2><input type="text" id="filter-race-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-2 flex-wrap justify-center sm:justify-end"><button id="reset-race-btn" class="bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Réinitialiser Course</button><button id="new-heat-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Manche Suivante</button><button id="previous-heat-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Temps Manche Préc.</button><button id="podium-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-xl transition duration-200">Podium</button></div></div><div id="race-table-container" class="bg-gray-100 p-2 md:p-4 rounded-xl shadow-inner overflow-x-auto"><table id="race-table" class="divide-y divide-gray-200"><thead id="race-table-head" class="bg-gray-200 sticky top-0"></thead><tbody id="race-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
             document.getElementById('content-admin').innerHTML = creditsButtonHTML + `
-                <div class="bg-white shadow-xl rounded-2xl p-6">
+                <div class="bg-white shadow-xl rounded-2xl p-4 md:p-6">
                     <div class="mb-6 border-b border-gray-200">
                          <nav class="flex space-x-4" aria-label="Admin Tabs">
                             <button id="show-access-btn" class="admin-sub-tab-button active py-2 px-4 border-b-2 font-medium text-sm">Gestion des Accès</button>
@@ -539,7 +582,7 @@
                     </div>
 
                     <div id="admin-access-section">
-                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><div><h2 class="text-xl font-bold text-gray-800">Gérer les utilisateurs autorisés</h2><p class="text-gray-600 text-sm">Seuls les utilisateurs listés ici peuvent se connecter.</p></div><input type="text" id="filter-access-input" placeholder="Rechercher un utilisateur..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></div><form id="add-user-form" class="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-wrap items-end gap-4"><div class="flex-grow"><label for="user-nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="user-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="user-prenom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" id="user-tel" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow"><label for="user-role" class="block text-sm font-medium text-gray-700">Rôle</label><select id="user-role" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"><option value="Super Admin">Super Admin</option><option value="Organisation">Organisation</option><option value="Responsable Radio">Responsable Radio</option><option value="MAIRE">MAIRE</option><option value="Chrono Départ">Chrono Départ</option><option value="Chrono Arrivée">Chrono Arrivée</option><option value="Bénévole">Bénévole</option><option value="Concurrent">Concurrent</option></select></div><div class="flex items-center gap-2"><button type="submit" id="add-user-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button><button type="button" id="cancel-edit-user-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl" style="display:none;">Annuler</button></div></form><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-100"><tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Nom Prénom</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Rôle</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th></tr></thead><tbody id="access-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div>
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><div><h2 class="text-xl font-bold text-gray-800">Gérer les utilisateurs autorisés</h2><p class="text-gray-600 text-sm">Seuls les utilisateurs listés ici peuvent se connecter.</p></div><input type="text" id="filter-access-input" placeholder="Rechercher un utilisateur..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></div><form id="add-user-form" class="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-wrap items-end gap-4"><div class="flex-grow min-w-[150px]"><label for="user-nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="user-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="user-prenom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" id="user-tel" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-role" class="block text-sm font-medium text-gray-700">Rôle</label><select id="user-role" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"><option value="Super Admin">Super Admin</option><option value="Organisation">Organisation</option><option value="Responsable Radio">Responsable Radio</option><option value="MAIRE">MAIRE</option><option value="Chrono Départ">Chrono Départ</option><option value="Chrono Arrivée">Chrono Arrivée</option><option value="Bénévole">Bénévole</option><option value="Concurrent">Concurrent</option></select></div><div class="flex items-center gap-2"><button type="submit" id="add-user-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button><button type="button" id="cancel-edit-user-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl" style="display:none;">Annuler</button></div></form><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-100"><tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Nom Prénom</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Rôle</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th></tr></thead><tbody id="access-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div>
                     </div>
 
                     <div id="admin-reset-section" style="display: none;">
@@ -644,9 +687,9 @@
                     }
 
                     if (property === 'fonction') {
-                         const benevole = data[personIndex];
-                         const user = utilisateursAutorises.find(u => u.tel === benevole.tel);
-                         const currentRole = user ? user.role : 'Aucun accès';
+                          const benevole = data[personIndex];
+                          const user = utilisateursAutorises.find(u => u.tel === benevole.tel);
+                          const currentRole = user ? user.role : 'Aucun accès';
                         if (!['Super Admin', 'Organisation', 'Chrono Départ', 'Chrono Arrivée', 'MAIRE'].includes(currentRole)) {
                             if (select.value === 'Responsable Radio 📻') {
                                 updateAccessFromBenevole(benevole, 'Responsable Radio');
@@ -726,7 +769,7 @@
                                 </a>
                                 <span class="${hasValidTel ? 'hidden' : ''} text-red-500 p-1" title="Numéro manquant">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                                     </svg>
                                 </span>
                             </div>
@@ -849,7 +892,7 @@
                 const header = document.querySelector('th[data-column="tel"]');
                 const cells = document.querySelectorAll('td[data-column="tel"]');
                 if (!(isSuperAdmin || currentUser.role === 'Organisation')) return;
-                if(header) header.style.display = isHidden ? "none" : "" ; 
+                if(header) header.style.display = isHidden ? "none" : "" ;
                 cells.forEach(cell => { cell.style.display = isHidden ? "none": "" });
             }
 
@@ -985,7 +1028,7 @@
                             </div>
                         </td>
                     `;
-            
+                
                     const select = document.createElement("select");
                     ["À vérifier", "Conforme", "Non Conforme"].forEach(status => {
                         const option = document.createElement("option");
@@ -994,10 +1037,10 @@
                         if (concurrent.controle === status) option.selected = true;
                         select.appendChild(option);
                     });
-            
+                
                     const getSelectClass = (status) => `controle-select rounded-md text-xs p-1 font-semibold controle-${status.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '')}`;
                     select.className = getSelectClass(concurrent.controle);
-            
+                
                     select.addEventListener("change", (event) => {
                         const targetConcurrent = concurrents[concurrentIndex];
                         if (targetConcurrent) {
@@ -1005,11 +1048,11 @@
                             event.target.className = getSelectClass(event.target.value);
                         }
                     });
-            
+                
                     row.children[7].appendChild(select);
                     concurrentsAdminBody.appendChild(row);
                 });
-            
+                
                 document.querySelectorAll(".edit-concurrent-btn").forEach(btn => btn.addEventListener("click", event => {
                     openConcurrentModal(event.target.dataset.id);
                 }));
@@ -1022,7 +1065,7 @@
                         deleteDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, docId));
                     });
                 }));
-            
+                
                 document.querySelectorAll(".doc-check").forEach(checkbox => checkbox.addEventListener("change", event => {
                     const numero = event.target.dataset.numero;
                     const propPath = event.target.dataset.prop;
@@ -1036,7 +1079,7 @@
                         current[props[props.length - 1]] = event.target.checked;
                     }
                 }));
-            
+                
                 document.querySelectorAll(".paiement-input").forEach(input => input.addEventListener("input", event => {
                     const numero = event.target.dataset.numero;
                     const targetConcurrent = concurrents.find(c => c.numero == numero);
@@ -1130,13 +1173,13 @@
             }
 
             async function resetChrono() {
-                 await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null });
-                 selectedConcurrentForChrono = null;
-                 selectedConcurrentDisplay.textContent = '';
-                 chronoSearchInput.value = '';
+                await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null });
+                selectedConcurrentForChrono = null;
+                selectedConcurrentDisplay.textContent = '';
+                chronoSearchInput.value = '';
             }
 
-            async function startNewHeat() { 
+            async function startNewHeat() {
                 const nextManche = currentManche + 1;
                 if (nextManche <= 8) {
                      const message = `Êtes-vous sûr de vouloir passer à la manche <strong>${nextManche <= 2 ? 'Descente test ' + nextManche : 'Course ' + (nextManche - 2)}</strong> ?`;
@@ -1166,64 +1209,68 @@
                 }
             }
 
-            function renderRaceTable(){
-                const headLeft = document.getElementById('concurrents-table-head-left');
-                const bodyLeft = document.getElementById('concurrents-table-body-left');
-                const headMiddle = document.getElementById('concurrents-table-head-middle');
-                const bodyMiddle = document.getElementById('concurrents-table-body-middle');
-                const headRight = document.getElementById('concurrents-table-head-right');
-                const bodyRight = document.getElementById('concurrents-table-body-right');
-
-                headLeft.innerHTML = ''; bodyLeft.innerHTML = ''; headMiddle.innerHTML = ''; bodyMiddle.innerHTML = ''; headRight.innerHTML = ''; bodyRight.innerHTML = '';
+            function renderRaceTable() {
+                const tableHead = document.getElementById('race-table-head');
+                const tableBody = document.getElementById('race-table-body');
+                tableHead.innerHTML = '';
+                tableBody.innerHTML = '';
 
                 const filterValue = filterRaceInput.value.toLowerCase();
                 let dataToRender = concurrents.filter(c => c.nom.toLowerCase().includes(filterValue));
-                
+
                 dataToRender.forEach(c => {
                     const officialRuns = c.manches.slice(2).filter(t => t !== null && t !== undefined);
                     c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
                     c.tempsTotal = officialRuns.length > 0 ? officialRuns.reduce((a, b) => a + b, 0) : null;
                 });
-                
-                dataToRender.sort((a,b) => {
+
+                dataToRender.sort((a, b) => {
                     if (a.meilleurTemps === null) return 1;
                     if (b.meilleurTemps === null) return -1;
                     return a.meilleurTemps - b.meilleurTemps;
                 });
 
-                const headersLeft = ['Cl.', 'N°', 'Concurrent'];
-                const headersMiddle = Array.from({length: 8}, (_, i) => i < 2 ? `Descente test ${i+1}` : `Course ${i-1}`);
-                const headersRight = ['Temps Total', 'Meilleur Temps'];
-
-                headLeft.innerHTML = `<tr>${headersLeft.map(h => `<th class="px-4 py-3 text-left text-xs font-bold uppercase bg-gray-200">${h}</th>`).join('')}</tr>`;
-                const currentMancheIndexInMiddle = currentManche - 1;
-                headMiddle.innerHTML = `<tr>${headersMiddle.map((h, i) => `<th id="${i === currentMancheIndexInMiddle ? 'current-heat-header' : ''}" class="px-4 py-3 text-left text-xs font-bold uppercase bg-gray-200">${h}</th>`).join('')}</tr>`;
-                headRight.innerHTML = `<tr>${headersRight.map(h => `<th class="px-4 py-3 text-left text-xs font-bold uppercase bg-gray-200">${h}</th>`).join('')}</tr>`;
+                const headers = ['Cl.', 'N°', 'Concurrent'];
+                const mancheHeaders = Array.from({ length: currentManche }, (_, i) => i < 2 ? `Test ${i + 1}` : `Course ${i - 1}`);
+                headers.push(...mancheHeaders, 'Temps Total', 'Meilleur Temps');
                 
+                let headerHTML = '<tr>';
+                headers.forEach((h, i) => {
+                    const isCurrentMancheCol = (i === (3 + currentManche - 1));
+                    headerHTML += `<th id="${isCurrentMancheCol ? 'current-heat-header' : ''}" class="px-4 py-3 text-left text-xs font-bold uppercase">${h}</th>`;
+                });
+                headerHTML += '</tr>';
+                tableHead.innerHTML = headerHTML;
+
                 const canEditTimes = isSuperAdmin || ['Organisation', 'Chrono Départ', 'Chrono Arrivée'].includes(currentUser.role);
 
-                dataToRender.forEach((concurrent, index)=>{
-                    const rowLeft = bodyLeft.insertRow();
-                    const rowMiddle = bodyMiddle.insertRow();
-                    const rowRight = bodyRight.insertRow();
-                    
+                dataToRender.forEach((concurrent, index) => {
+                    const row = tableBody.insertRow();
                     const classement = concurrent.meilleurTemps !== null ? index + 1 : "-";
                     let classementHTML = classement;
-                    if(classement === 1) classementHTML = `🥇 ${classement}`;
-                    else if(classement === 2) classementHTML = `🥈 ${classement}`;
-                    else if(classement === 3) classementHTML = `🥉 ${classement}`;
+                    if (classement === 1) classementHTML = `🥇 ${classement}`;
+                    else if (classement === 2) classementHTML = `🥈 ${classement}`;
+                    else if (classement === 3) classementHTML = `🥉 ${classement}`;
 
-                    rowLeft.innerHTML = `<td class="px-4 py-3 text-base font-bold text-center">${classementHTML}</td><td class="px-4 py-3 text-sm">${concurrent.numero}</td><td class="px-4 py-3 text-sm">${concurrent.nom} ${concurrent.isChild ? '🧒' : ''}</td>`;
+                    let rowHTML = `
+                        <td class="px-4 py-3 text-base font-bold text-center">${classementHTML}</td>
+                        <td class="px-4 py-3 text-sm">${concurrent.numero}</td>
+                        <td class="px-4 py-3 text-sm">${concurrent.nom} ${concurrent.isChild ? '🧒' : ''}</td>
+                    `;
                     
-                    let middleHtml = '';
-                    for(let i=0; i<8; i++){ middleHtml += `<td class="px-4 py-3 text-sm"><input type="text" class="time-input" value="${formatTime(concurrent.manches[i])}" data-concurrent-id="${concurrent.id}" data-manche-index="${i}" ${canEditTimes ? '' : 'disabled'}></td>`; }
-                    rowMiddle.innerHTML = middleHtml;
-
-                    rowRight.innerHTML = `<td class="px-4 py-3 text-sm font-bold">${formatTime(concurrent.tempsTotal)}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(concurrent.meilleurTemps)}</td>`;
+                    for (let i = 0; i < currentManche; i++) {
+                        rowHTML += `<td class="px-4 py-3 text-sm"><input type="text" class="time-input" value="${formatTime(concurrent.manches[i])}" data-concurrent-id="${concurrent.id}" data-manche-index="${i}" ${canEditTimes ? '' : 'disabled'}></td>`;
+                    }
+                    
+                    rowHTML += `
+                        <td class="px-4 py-3 text-sm font-bold">${formatTime(concurrent.tempsTotal)}</td>
+                        <td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(concurrent.meilleurTemps)}</td>
+                    `;
+                    row.innerHTML = rowHTML;
                 });
-                
+
                 currentMancheDisplay.textContent = currentManche <= 2 ? `Descente test ${currentManche}` : `Course ${currentManche - 2}`;
-                
+
                 setTimeout(() => {
                     const currentHeatHeader = document.getElementById('current-heat-header');
                     if (currentHeatHeader) {
@@ -1232,7 +1279,7 @@
                 }, 100);
             }
 
-             document.getElementById('race-table-scrollable-middle').addEventListener('change', async (e) => {
+            document.getElementById('race-table-container').addEventListener('change', async (e) => {
                 if (e.target.classList.contains('time-input')) {
                     const input = e.target;
                     const concurrentId = input.dataset.concurrentId;
@@ -1277,7 +1324,7 @@
                     title.textContent = `Classement - ${prevMancheName}`;
                     gridHead.innerHTML = `<tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">N°</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Temps ${prevMancheName}</th></tr>`;
                     const ranked = [...concurrents].filter(c => c.manches[prevMancheIndex] !== null).sort((a,b) => a.manches[prevMancheIndex] - b.manches[prevMancheIndex]);
-                     ranked.forEach((c, i) => {
+                      ranked.forEach((c, i) => {
                         gridBody.innerHTML += `<tr><td class="px-4 py-3 text-sm font-bold">${i+1}</td><td class="px-4 py-3 text-sm">${c.numero}</td><td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.manches[prevMancheIndex])}</td></tr>`;
                     });
                 }
@@ -1294,7 +1341,35 @@
                 document.getElementById('add-concurrent-modal').style.display = 'none';
                 editingConcurrentId = null;
             });
-            addConcurrentFormModal.addEventListener('submit', async e=>{e.preventDefault();const numero = document.getElementById("concurrent-numero-modal").value, nom = document.getElementById("concurrent-nom-modal").value, isChild = document.getElementById("concurrent-enfant-modal").checked;if(concurrents.some(c=>c.numero==numero && c.id !== editingConcurrentId)){alert("Ce numéro de concurrent existe déjà.");return}if(editingConcurrentId){const docRef=doc(db,`artifacts/${appId}/public/data/concurrents`,editingConcurrentId);await updateDoc(docRef,{numero:parseInt(numero),nom:nom,isChild:isChild})}else{await addDoc(collection(db, `artifacts/${appId}/public/data/concurrents`),{numero:parseInt(numero),nom:nom, isChild: isChild, manches:new Array(8).fill(null),meilleurTemps:null,tempsTotal:null,documents:{dossier:!1,paiement:{ok:!1,montant:""},assurance:!1},equipements:!1,controle:"À vérifier"})}document.getElementById('add-concurrent-modal').style.display="none",addConcurrentFormModal.reset(),editingConcurrentId=null});
+            addConcurrentFormModal.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const numero = document.getElementById("concurrent-numero-modal").value;
+                const nom = document.getElementById("concurrent-nom-modal").value;
+                const isChild = document.getElementById("concurrent-enfant-modal").checked;
+                if (concurrents.some(c => c.numero == numero && c.id !== editingConcurrentId)) {
+                    alert("Ce numéro de concurrent existe déjà.");
+                    return;
+                }
+                if (editingConcurrentId) {
+                    const docRef = doc(db, `artifacts/${appId}/public/data/concurrents`, editingConcurrentId);
+                    await updateDoc(docRef, { numero: parseInt(numero), nom: nom, isChild: isChild });
+                } else {
+                    await addDoc(collection(db, `artifacts/${appId}/public/data/concurrents`), {
+                        numero: parseInt(numero),
+                        nom: nom,
+                        isChild: isChild,
+                        manches: new Array(8).fill(null),
+                        meilleurTemps: null,
+                        tempsTotal: null,
+                        documents: { dossier: false, paiement: { ok: false, montant: "" }, assurance: false },
+                        equipements: false,
+                        controle: "À vérifier"
+                    });
+                }
+                document.getElementById('add-concurrent-modal').style.display = "none";
+                addConcurrentFormModal.reset();
+                editingConcurrentId = null;
+            });
             
             chronoSearchInput.addEventListener('input', () => {
                 const value = chronoSearchInput.value;
@@ -1374,7 +1449,7 @@
                     `;
                     accessTableBody.appendChild(row);
                 });
-            
+                
                 document.querySelectorAll(".delete-user-btn").forEach(btn => {
                     btn.addEventListener("click", event => {
                         const userId = event.target.dataset.id;
@@ -1383,10 +1458,10 @@
                            showConfirmationModal("Action impossible : vous ne pouvez pas supprimer le Super Admin.", () => {}, "Erreur");
                             return;
                         }
-                         const message = `Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>${user.prenom} ${user.nom}</strong> ?`;
-                         showConfirmationModal(message, () => {
+                          const message = `Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>${user.prenom} ${user.nom}</strong> ?`;
+                          showConfirmationModal(message, () => {
                             deleteDoc(doc(db, `artifacts/${appId}/public/data/users`, userId));
-                         });
+                          });
                     });
                 });
                 
@@ -1399,7 +1474,7 @@
             
             cancelEditUserBtn.addEventListener('click', resetUserForm);
 
-            addUserForm.addEventListener('submit', async e=>{
+            addUserForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const userData = {
                     nom: document.getElementById("user-nom").value.trim().toUpperCase(),
@@ -1440,7 +1515,7 @@
 
             resetBenevolesBtn.addEventListener('click', async () => {
                 showConfirmationModal("ATTENTION : Vous êtes sur le point de supprimer <strong>TOUS</strong> les bénévoles.<br><br>Cette action est IRRÉVERSIBLE.", async () => {
-                     try {
+                    try {
                         await clearCollection('benevoles');
                         alert("La base de données des bénévoles a été réinitialisée.");
                     } catch (e) {
@@ -1562,9 +1637,9 @@
                     document.getElementById('missing-info-container').style.display = 'none';
                     document.getElementById('toggleTel').parentElement.style.display = 'none';
                  }
-                 if(isMaire) {
+                  if(isMaire) {
                     document.getElementById('save-btn').style.display = 'none';
-                 }
+                  }
 
 
                 if (!canEditConcurrents) {
@@ -1773,7 +1848,7 @@
             });
 
 
-            if (isSuperAdmin) { 
+            if (isSuperAdmin) {
                 onSnapshot(collection(db, `artifacts/${appId}/public/data/users`), (snapshot) => {
                     utilisateursAutorises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderAccessTable();
@@ -1856,8 +1931,8 @@
                         <p class="note"><strong>Attention :</strong> Cet onglet est réservé aux Super Administrateurs. Les actions ici sont puissantes.</p>
                         <img src="https://i.imgur.com/8Qp2f8j.png" alt="Zone d'Administration">
                         <ul>
-                           <li><strong>Gestion des Accès :</strong> Créez, modifiez ou supprimez les comptes utilisateurs qui peuvent se connecter à l'application.</li>
-                           <li><strong>Réinitialisation :</strong> Effacez de manière permanente les données (bénévoles, concurrents, accès). <strong>Votre propre accès est toujours conservé.</strong></li>
+                            <li><strong>Gestion des Accès :</strong> Créez, modifiez ou supprimez les comptes utilisateurs qui peuvent se connecter à l'application.</li>
+                            <li><strong>Réinitialisation :</strong> Effacez de manière permanente les données (bénévoles, concurrents, accès). <strong>Votre propre accès est toujours conservé.</strong></li>
                         </ul>
                         ` : ''}
                     `;
@@ -1937,4 +2012,5 @@
     </script>
 </body>
 </html>
+
 
