@@ -1391,18 +1391,15 @@
             });
             
             async function clearDbLastRecordedTime() {
-                // This function ONLY clears the database state.
-                const chronoSnapshot = await getDoc(chronoDocRef);
-                if (chronoSnapshot.data() && chronoSnapshot.data().lastRecordedTime) {
+                // Cette fonction efface le champ de la base de données, ce qui déclenchera la fermeture pour tout le monde.
+                clearTimeout(modalTimeout); 
+                const docSnap = await getDoc(chronoDocRef);
+                if (docSnap.exists() && docSnap.data().lastRecordedTime) {
                     await updateDoc(chronoDocRef, { lastRecordedTime: null });
                 }
             }
 
-            closeTimeConfirmModalBtn.addEventListener('click', () => {
-                // This ONLY hides the modal locally and clears the local timer.
-                clearTimeout(modalTimeout);
-                timeConfirmationModal.style.display = 'none';
-            });
+            closeTimeConfirmModalBtn.addEventListener('click', clearDbLastRecordedTime);
 
             previousHeatBtn.addEventListener('click', () => showGrid('previous'));
             podiumBtn.addEventListener('click', () => showGrid('podium'));
@@ -1852,6 +1849,8 @@
                     document.getElementById('time-confirm-concurrent').textContent = `N°${recordedData.numero} - ${recordedData.nom}`;
                     document.getElementById('time-confirm-time').textContent = formatTime(recordedData.time);
                     timeConfirmationModal.style.display = 'flex';
+                    
+                    // The timeout is responsible for clearing the database state
                     modalTimeout = setTimeout(() => {
                         clearDbLastRecordedTime();
                     }, 10000);
