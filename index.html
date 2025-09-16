@@ -1390,16 +1390,19 @@
                 await updateDoc(chronoDocRef, { selectedConcurrent: numero });
             });
             
-            async function clearLastRecordedTime() {
-                clearTimeout(modalTimeout); 
-                timeConfirmationModal.style.display = 'none';
+            async function clearDbLastRecordedTime() {
+                // This function ONLY clears the database state.
                 const chronoSnapshot = await getDoc(chronoDocRef);
                 if (chronoSnapshot.data() && chronoSnapshot.data().lastRecordedTime) {
                     await updateDoc(chronoDocRef, { lastRecordedTime: null });
                 }
             }
 
-            closeTimeConfirmModalBtn.addEventListener('click', clearLastRecordedTime);
+            closeTimeConfirmModalBtn.addEventListener('click', () => {
+                // This ONLY hides the modal locally and clears the local timer.
+                clearTimeout(modalTimeout);
+                timeConfirmationModal.style.display = 'none';
+            });
 
             previousHeatBtn.addEventListener('click', () => showGrid('previous'));
             podiumBtn.addEventListener('click', () => showGrid('podium'));
@@ -1850,7 +1853,7 @@
                     document.getElementById('time-confirm-time').textContent = formatTime(recordedData.time);
                     timeConfirmationModal.style.display = 'flex';
                     modalTimeout = setTimeout(() => {
-                        clearLastRecordedTime();
+                        clearDbLastRecordedTime();
                     }, 10000);
                 } else {
                     timeConfirmationModal.style.display = 'none';
