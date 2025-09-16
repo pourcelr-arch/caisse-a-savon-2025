@@ -436,9 +436,9 @@
                     (error) => {
                         console.error("Erreur de lecture (Firestore):", error);
                         if(error.code === 'permission-denied') {
-                            alert("Erreur de permission. Assurez-vous que les règles de sécurité de votre base de données Firestore sont correctement configurées ET que la structure des données (dossiers et sous-dossiers) a été créée exactement comme indiqué dans le guide.");
+                            showConfirmationModal("Erreur de permission. Assurez-vous que les règles de sécurité de votre base de données Firestore sont correctement configurées ET que la structure des données (dossiers et sous-dossiers) a été créée exactement comme indiqué dans le guide.", () => {});
                         } else {
-                            alert("Une erreur de base de données est survenue.");
+                             showConfirmationModal("Une erreur de base de données est survenue.", () => {});
                         }
                         reject(error);
                     }
@@ -1087,7 +1087,7 @@
             async function startChrono() {
                 const selectedConcurrent = selectedConcurrentForChrono;
                 if (!selectedConcurrent) {
-                    alert("Veuillez sélectionner un concurrent avant de démarrer.");
+                    showConfirmationModal("Veuillez sélectionner un concurrent avant de démarrer.", () => {}, "Aucun Concurrent Sélectionné");
                     return;
                 }
                 await updateDoc(chronoDocRef, {
@@ -1108,18 +1108,19 @@
                 const endTime = new Date().getTime();
                 const startTime = chronoData.startTime;
                 const difference = endTime - startTime;
-                
                 const concurrentNumero = chronoData.currentConcurrent;
                 const concurrent = concurrents.find(c => c.numero == concurrentNumero);
 
                 if (concurrent) {
-                    const manches = concurrent.manches;
-                    manches[currentManche - 1] = difference;
-                    await updateDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, concurrent.id), { manches: manches });
-                    
+                    // Afficher le temps immédiatement pour une meilleure réactivité
                     document.getElementById('time-confirm-concurrent').textContent = `N°${concurrent.numero} - ${concurrent.nom}`;
                     document.getElementById('time-confirm-time').textContent = formatTime(difference);
                     timeConfirmationModal.style.display = 'flex';
+
+                    // Mettre à jour la base de données en arrière-plan
+                    const manches = concurrent.manches;
+                    manches[currentManche - 1] = difference;
+                    await updateDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, concurrent.id), { manches: manches });
                 }
 
                 await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null });
@@ -1143,7 +1144,7 @@
                         await updateDoc(chronoDocRef, { currentManche: nextManche });
                     }, "Passer à la manche suivante ?");
                 } else {
-                    alert("Nombre maximum de manches atteint."); 
+                    showConfirmationModal("Nombre maximum de manches atteint.", () => {}, "Information");
                 }
             }
 
@@ -1270,7 +1271,7 @@
                         gridBody.innerHTML += `<tr><td class="px-4 py-3 text-sm font-bold">${i+1}</td><td class="px-4 py-3 text-sm">${c.numero}</td><td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.meilleurTemps)}</td></tr>`;
                     });
                 } else { // Previous heat
-                    if (currentManche === 1) { alert("Aucune manche précédente à afficher."); return; }
+                    if (currentManche === 1) { showConfirmationModal("Aucune manche précédente à afficher.", () => {}, "Information"); return; }
                     const prevMancheIndex = currentManche - 2;
                     const prevMancheName = prevMancheIndex < 2 ? `Descente test ${prevMancheIndex + 1}` : `Course ${prevMancheIndex - 1}`;
                     title.textContent = `Classement - ${prevMancheName}`;
@@ -1379,7 +1380,7 @@
                         const userId = event.target.dataset.id;
                         const user = utilisateursAutorises.find(u => u.id === userId);
                         if (user.role === 'Super Admin') {
-                            alert("Action impossible : vous ne pouvez pas supprimer le Super Admin.");
+                           showConfirmationModal("Action impossible : vous ne pouvez pas supprimer le Super Admin.", () => {}, "Erreur");
                             return;
                         }
                          const message = `Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>${user.prenom} ${user.nom}</strong> ?`;
@@ -1412,7 +1413,7 @@
                     await updateDoc(docRef, userData);
                 } else {
                      if (utilisateursAutorises.some(u => u.tel === userData.tel)) {
-                        alert("Un utilisateur avec ce numéro de téléphone existe déjà.");
+                        showConfirmationModal("Un utilisateur avec ce numéro de téléphone existe déjà.", () => {}, "Erreur");
                         return;
                     }
                     await addDoc(collection(db, `artifacts/${appId}/public/data/users`), userData);
@@ -1721,10 +1722,10 @@
                                 location.reload();
                             });
                         } else {
-                            alert("Fichier invalide ou mal formaté.");
+                            showConfirmationModal("Fichier invalide ou mal formaté.", () => {}, "Erreur d'importation");
                         }
                     } catch (error) {
-                        alert("Erreur lors de la lecture du fichier.");
+                        showConfirmationModal("Erreur lors de la lecture du fichier.", () => {}, "Erreur d'importation");
                         console.error("Erreur d'importation:", error);
                     }
                     importFile.value = '';
@@ -1803,56 +1804,116 @@
             let tutorialContent = '';
             let tutorialTitle = 'Guide Rapide';
 
+             const commonStyles = `
+                body { font-family: sans-serif; line-height: 1.6; padding: 20px; color: #333; }
+                h1, h2, h3 { color: #1e40af; }
+                h2 { border-bottom: 2px solid #3b82f6; padding-bottom: 5px; margin-top: 25px; }
+                h3 { border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 20px; }
+                p, li { font-size: 15px; }
+                strong { color: #1f2937; }
+                ul { padding-left: 20px; list-style-type: '✔️ '; }
+                img { border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; max-width: 100%; height: auto; }
+                .note { background-color: #fef9c3; border-left: 4px solid #facc15; padding: 10px; margin: 15px 0; border-radius: 4px;}
+            `;
+
             switch (role) {
                 case 'Super Admin':
                 case 'Organisation':
                     tutorialTitle = "Guide Complet pour l'Organisation";
                     tutorialContent = `
-                        <h3>1. Gérer les Bénévoles</h3>
-                        <p>Ajoutez, modifiez et assignez des fonctions et du matériel.</p>
-                        <p><strong>Super Admin :</strong> Vous seul pouvez gérer les accès via la colonne "Accès".</p>
-                        <h3>2. Gérer les Concurrents</h3>
-                        <p>Ajoutez des concurrents et mettez à jour l'état de leurs documents.</p>
-                        <h3>3. Gérer la Course</h3>
-                        <p>Utilisez le chrono, saisissez des temps manuellement et gérez les manches.</p>
-                        <h3>4. Gérer les Accès (Super Admin)</h3>
-                        <p>Créez et supprimez les accès pour tous les utilisateurs.</p>
+                        <p>Bienvenue ! En tant qu'organisateur, vous avez accès à toutes les fonctionnalités clés pour gérer l'événement.</p>
+                        
+                        <h2>🏎️ Onglet Chrono</h2>
+                        <p>C'est le centre de contrôle de la course.</p>
+                        <img src="https://i.imgur.com/gA8F2oI.png" alt="Vue de l'onglet Chrono">
+                        <ul>
+                            <li><strong>Lancer une course :</strong> Recherchez un concurrent par nom ou numéro, sélectionnez-le dans la liste, puis cliquez sur "Démarrer".</li>
+                            <li><strong>Arrêter une course :</strong> Dès que le concurrent passe la ligne d'arrivée, cliquez sur "Arrêter et Enregistrer". Le temps sera sauvegardé.</li>
+                            <li><strong>Manche suivante :</strong> Une fois tous les concurrents passés, cliquez sur "Manche Suivante" pour faire avancer la course.</li>
+                            <li><strong>Correction manuelle :</strong> En cas d'erreur, vous pouvez cliquer directement sur un temps dans le tableau pour le modifier.</li>
+                        </ul>
+
+                        <h2>🙋 Onglet Concurrents</h2>
+                        <p>Gérez la liste de tous les participants.</p>
+                        <img src="https://i.imgur.com/s4a2r7p.png" alt="Tableau des concurrents">
+                        <ul>
+                            <li><strong>Ajouter :</strong> Utilisez le bouton "+ Ajouter un Concurrent".</li>
+                            <li><strong>Modifier/Supprimer :</strong> Utilisez les boutons d'action sur chaque ligne.</li>
+                            <li><strong>Suivi des dossiers :</strong> Cochez les cases pour suivre les documents (inscription, assurance, paiement) et le contrôle technique.</li>
+                        </ul>
+
+                        <h2>🤝 Onglet Bénévoles & Matériel</h2>
+                        <p>Gérez vos équipes et le matériel qui leur est confié.</p>
+                        <img src="https://i.imgur.com/G5g2f0b.png" alt="Tableau des bénévoles">
+                        <ul>
+                            <li><strong>Ajouter/Modifier :</strong> Comme pour les concurrents, utilisez les boutons pour gérer la liste.</li>
+                            <li><strong>Affectations :</strong> Attribuez un lieu et une fonction à chaque bénévole via les menus déroulants.</li>
+                            <li><strong>Suivi du matériel :</strong> Cochez les cases "D" (Distribué) et "R" (Restitué) pour les radios et sifflets. Le résumé en haut se met à jour automatiquement.</li>
+                        </ul>
+                        
+                        ${isSuperAdmin ? `
+                        <h2>⚙️ Onglet Administration</h2>
+                        <p class="note"><strong>Attention :</strong> Cet onglet est réservé aux Super Administrateurs. Les actions ici sont puissantes.</p>
+                        <img src="https://i.imgur.com/8Qp2f8j.png" alt="Zone d'Administration">
+                        <ul>
+                           <li><strong>Gestion des Accès :</strong> Créez, modifiez ou supprimez les comptes utilisateurs qui peuvent se connecter à l'application.</li>
+                           <li><strong>Réinitialisation :</strong> Effacez de manière permanente les données (bénévoles, concurrents, accès). <strong>Votre propre accès est toujours conservé.</strong></li>
+                        </ul>
+                        ` : ''}
                     `;
                     break;
                 case 'Responsable Radio':
                     tutorialTitle = "Guide pour le Responsable Radio";
                     tutorialContent = `
-                        <h3>Votre Mission</h3>
-                        <p>Vous pouvez consulter la liste des bénévoles et cocher/décocher les cases pour le matériel (Radios, Sifflets) pour suivre qui a quoi.</p>
-                        <p>Toutes les autres informations sont en lecture seule.</p>
+                        <h2>Votre Mission : Suivre le Matériel</h2>
+                        <p>Votre rôle est de vous assurer que tout le matériel (radios, sifflets) est bien distribué en début de journée et restitué à la fin.</p>
+                        <img src="https://i.imgur.com/G5g2f0b.png" alt="Tableau Bénévoles avec focus Matériel">
+                        <ul>
+                            <li><strong>Distribution :</strong> Lorsqu'un bénévole prend son matériel, cochez la case "D" (Distribué) correspondante sur sa ligne.</li>
+                            <li><strong>Récupération :</strong> Lorsqu'il le rend, cochez la case "R" (Restitué).</li>
+                        </ul>
+                        <p>Le résumé en haut de la page vous indique en temps réel combien d'appareils sont encore en circulation. Les autres colonnes sont en lecture seule pour vous.</p>
                     `;
                     break;
-                case 'MAIRE':
-                     tutorialTitle = "Guide de Consultation";
-                     tutorialContent = `
-                        <h3>Accès en Consultation</h3>
-                        <p>Vous avez un accès en lecture seule aux onglets "Bénévoles & Matériel" et "Gestion Course" pour suivre l'organisation et le déroulement de l'événement en temps réel.</p>
-                    `;
-                    break;
-                 case 'Chrono Départ':
-                 case 'Chrono Arrivée':
+                case 'Chrono Départ':
+                case 'Chrono Arrivée':
                     tutorialTitle = "Guide pour l'Équipe Chrono";
                     tutorialContent = `
-                        <h3>Utilisation du Chronomètre</h3>
-                        <p><strong>Chrono Départ :</strong> Sélectionnez un concurrent et cliquez sur "Démarrer" au moment exact du départ.</p>
-                        <p><strong>Chrono Arrivée :</strong> Vous verrez le temps défiler en direct. Cliquez sur "Arrêter et Enregistrer" dès que le concurrent franchit la ligne.</p>
-                        <p>En cas d'erreur, vous pouvez cliquer sur un temps dans le tableau pour le corriger manuellement.</p>
+                        <p>Votre rôle est crucial ! Votre concentration se portera sur l'onglet <strong>Chrono</strong>.</p>
+                        <img src="https://i.imgur.com/gA8F2oI.png" alt="Vue détaillée du Chronomètre">
+                        
+                        <h3>Pour le Départ 🏁</h3>
+                        <ul>
+                            <li><strong>1. Recherchez le concurrent :</strong> Tapez son numéro ou son nom dans la barre de recherche.</li>
+                            <li><strong>2. Sélectionnez-le :</strong> Cliquez sur son nom dans la liste qui apparaît. Son nom s'affiche en dessous pour confirmer.</li>
+                            <li><strong>3. LANCEZ !</strong> Au moment exact où la caisse à savon s'élance, cliquez sur le bouton vert "Démarrer".</li>
+                        </ul>
+
+                        <h3>Pour l'Arrivée ✅</h3>
+                        <ul>
+                            <li><strong>1. Suivez le temps :</strong> Le chronomètre pour le concurrent en piste défile en temps réel sur votre écran.</li>
+                            <li><strong>2. ARRETEZ !</strong> Dès que la caisse franchit la ligne, cliquez sur le bouton rouge "Arrêter et Enregistrer".</li>
+                            <li><strong>3. Confirmez :</strong> Une fenêtre s'ouvrira avec le temps final. C'est votre confirmation que tout est bien enregistré.</li>
+                        </ul>
+                        <p class="note">En cas d'erreur, un organisateur peut corriger un temps manuellement en cliquant dessus dans le tableau.</p>
                     `;
                     break;
-                default: // Bénévole & Concurrent
-                    tutorialTitle = "Guide du Participant";
+                default: // Bénévole & Concurrent & MAIRE
+                    tutorialTitle = "Guide de Consultation";
                     tutorialContent = `
-                        <h3>Consulter les Informations</h3>
-                        <p>Bienvenue ! Vous pouvez utiliser ce tableau de bord pour :</p>
+                        <p>Bienvenue ! Vous avez un accès en consultation pour suivre l'événement en direct.</p>
+                        
+                        <h2>Suivre la Course 🏎️</h2>
+                        <p>L'onglet <strong>Chrono</strong> est votre principal point d'intérêt. Vous y verrez :</p>
+                        <img src="https://i.imgur.com/gA8F2oI.png" alt="Tableau de classement">
                         <ul>
-                            <li>- Consulter la liste des bénévoles et leurs affectations.</li>
-                            <li>- Suivre le classement et les temps de la course en direct.</li>
+                            <li>Le chronomètre en direct pour le concurrent actuellement sur la piste.</li>
+                            <li>Le classement général qui se met à jour automatiquement après chaque descente.</li>
+                            <li>Les temps de toutes les manches pour chaque participant.</li>
                         </ul>
+
+                        <h2>Voir les Bénévoles 🤝</h2>
+                        <p>Dans l'onglet <strong>Bénévoles & Matériel</strong>, vous pouvez consulter la liste des volontaires et leurs affectations.</p>
                     `;
                     break;
             }
@@ -1862,13 +1923,7 @@
                 <html>
                     <head>
                         <title>${tutorialTitle}</title>
-                        <style>
-                            body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
-                            h3 { color: #3b82f6; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 20px; }
-                            p, li { font-size: 14px; }
-                            strong { color: #1f2937; }
-                            ul { padding-left: 20px; }
-                        </style>
+                        <style>${commonStyles}</style>
                     </head>
                     <body>
                         <h1>${tutorialTitle}</h1>
