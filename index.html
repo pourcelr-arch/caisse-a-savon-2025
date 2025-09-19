@@ -131,8 +131,7 @@
 
         /* Styles pour les colonnes fixes (sticky) du tableau de course */
         #race-table th:nth-child(1), #race-table td:nth-child(1),
-        #race-table th:nth-child(2), #race-table td:nth-child(2),
-        #race-table th:nth-child(3), #race-table td:nth-child(3) {
+        #race-table th:nth-child(2), #race-table td:nth-child(2) {
             position: -webkit-sticky; /* Pour Safari */
             position: sticky;
             z-index: 10;
@@ -140,28 +139,24 @@
 
         #race-table th:nth-child(1), #race-table td:nth-child(1) { left: 0; }
         #race-table th:nth-child(2), #race-table td:nth-child(2) { left: 50px; }
-        #race-table th:nth-child(3), #race-table td:nth-child(3) { left: 110px; }
 
         #race-table thead th:nth-child(1),
-        #race-table thead th:nth-child(2),
-        #race-table thead th:nth-child(3) {
+        #race-table thead th:nth-child(2) {
             background-color: #e5e7eb; /* Corresponds to bg-gray-200 */
         }
 
         #race-table tbody td:nth-child(1),
-        #race-table tbody td:nth-child(2),
-        #race-table tbody td:nth-child(3) {
+        #race-table tbody td:nth-child(2) {
             background-color: #ffffff; /* Corresponds to bg-white */
         }
 
-        #race-table th:nth-child(3),
-        #race-table td:nth-child(3) {
+        #race-table th:nth-child(2),
+        #race-table td:nth-child(2) {
             border-right: 2px solid #d1d5db; /* Corresponds to border-gray-300 */
         }
 
         #race-table th:nth-child(1), #race-table td:nth-child(1) { width: 50px; }
-        #race-table th:nth-child(2), #race-table td:nth-child(2) { width: 60px; }
-        #race-table th:nth-child(3), #race-table td:nth-child(3) { width: 200px; }
+        #race-table th:nth-child(2), #race-table td:nth-child(2) { width: 200px; }
     </style>
 </head>
 <body class="p-2 sm:p-6">
@@ -238,6 +233,14 @@
                         Chrono
                     </span>
                 </button>
+                <button id="tab-podium" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap">
+                    <span class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                           <path fill-rule="evenodd" d="M11.293 2.293a1 1 0 011.414 0l.043.043c.293.293.385.737.228 1.114A10.06 10.06 0 0110 5c-1.393 0-2.69.403-3.768 1.114a.999.999 0 01.228-1.114l.043-.043a1 1 0 011.414 0L10 4.414l1.293-1.293zM5 10a5 5 0 1110 0 5 5 0 01-10 0zM10 18a8 8 0 100-16 8 8 0 000 16z" clip-rule="evenodd" />
+                        </svg>
+                        Podium
+                    </span>
+                </button>
                 <button id="tab-concurrents" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap">
                     <span class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -270,6 +273,10 @@
              <!-- Le contenu de l'onglet Course sera injecté ici par JS -->
         </div>
 
+        <div id="content-podium" class="tab-content" style="display: none;">
+            <!-- Le contenu de l'onglet Podium sera injecté ici par JS -->
+        </div>
+
         <div id="content-concurrents" class="tab-content" style="display: none;">
              <!-- Le contenu de l'onglet Concurrents sera injecté ici par JS -->
         </div>
@@ -296,16 +303,23 @@
     
     <!-- Modal for Race Time Confirmation -->
     <div id="time-confirmation-modal" class="modal" style="display:none">
-        <div class="modal-content max-w-sm text-center">
-            <div class="modal-header justify-center">
-                <h2 class="text-2xl font-bold">Temps Enregistré !</h2>
+        <div class="modal-content max-w-lg text-center bg-gray-900 text-white rounded-2xl shadow-2xl p-6">
+            <div id="new-record-banner" class="hidden text-2xl font-bold text-yellow-300 p-2 mb-4 border-2 border-yellow-300 rounded-lg">
+                🎉 NOUVEAU RECORD DE LA PISTE ! 🎉
             </div>
-            <div class="my-6">
-                <p id="time-confirm-concurrent" class="text-xl font-semibold text-gray-800"></p>
-                <p id="time-confirm-time" class="text-6xl font-bold text-blue-600 font-mono my-4"></p>
+            <div class="modal-header justify-center border-b-0 pb-2">
+                <h2 id="time-confirm-concurrent" class="text-3xl font-bold text-white"></h2>
             </div>
-            <div class="flex justify-center">
-                <button id="close-time-confirm-modal-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-xl">OK</button>
+            <div class="my-4">
+                <p id="time-confirm-time" class="text-8xl font-bold text-yellow-400 font-mono"></p>
+            </div>
+            <div class="space-y-3 text-lg text-gray-300">
+                <p id="time-confirm-rank" class="text-2xl"></p>
+                <p id="time-confirm-ecart-premier"></p>
+                <p id="time-confirm-ecart-precedent"></p>
+            </div>
+            <div class="flex justify-center mt-6">
+                <button id="close-time-confirm-modal-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl text-lg">OK</button>
             </div>
         </div>
     </div>
@@ -570,8 +584,9 @@
 
             // -- Inject HTML content for tabs --
             document.getElementById('content-dashboard').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><h2 class="text-xl font-bold text-gray-800 mb-4">Suivi du matériel</h2><div class="mb-8 p-4 bg-yellow-50 rounded-xl shadow-inner border-l-4 border-yellow-400 flex flex-wrap justify-between items-center text-sm md:text-base gap-4"><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Radios:</span><span class="font-bold text-blue-600" id="radios-distribuees">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="radios-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquantes:</span><span class="font-bold text-lg text-red-500" id="radios-manquantes">0</span></div></div><div class="flex-grow"></div><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Sifflets:</span><span class="font-bold text-blue-600" id="sifflets-distribues">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="sifflets-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquants:</span><span class="font-bold text-lg text-red-500" id="sifflets-manquants">0</span></div></div><div class="flex-grow"></div><div class="flex items-center space-x-2 mt-4 md:mt-0"><span class="font-medium text-gray-700">Appareils manquants:</span><span class="font-bold text-2xl text-red-500" id="appareils-manquants">0</span></div></div><h2 class="text-xl font-bold text-gray-800 mb-4">Liste des bénévoles</h2><div class="flex flex-col lg:flex-row justify-between items-center mb-4 gap-4"><div class="flex flex-wrap items-end gap-4"><button id="add-benevole-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">+ Ajouter</button></div><div class="w-full lg:w-auto flex-grow flex flex-col sm:flex-row justify-center items-center gap-2"><input type="text" id="filter-input" placeholder="Rechercher par nom..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full max-w-xs"><select id="filter-fonction" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></select><select id="filter-lieu" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></select></div><div class="flex items-center gap-4 flex-wrap"><div class="flex items-center gap-2" id="missing-info-container"><input type="checkbox" id="filter-missing-info" class="form-checkbox h-4 w-4 text-red-600 rounded"><label for="filter-missing-info" class="text-sm font-medium text-gray-700 select-none">Infos manquantes ❌</label></div><div class="flex items-center gap-2"><input type="checkbox" id="toggleTel" class="form-checkbox h-4 w-4 text-blue-600 rounded"><label for="toggleTel" class="text-sm font-medium text-gray-700 select-none">Masquer Tél.</label></div><div class="flex items-center gap-2"><span id="save-message" class="text-green-600 font-bold"></span><button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-2 md:p-4 rounded-xl overflow-x-auto shadow-inner"><table class="divide-y divide-gray-200" id="benevoles-table"><thead class="bg-gray-200 sticky top-0 z-10"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider rounded-tl-xl">Nom & Prénom</th><th data-column="tel" class="px-4 py-3 text-left text-xs font-bold uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Jours de présence</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Lieu d'affectation 📍</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Fonction 💼</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Matériel (D/R)</th><th data-column="zello" class="px-4 py-3 text-left text-xs font-bold uppercase">Zello 📻</th><th data-column="acces" class="px-4 py-3 text-left text-xs font-bold uppercase">Accès</th><th data-column="action" class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
-            document.getElementById('content-concurrents').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Liste des Concurrents</h2><input type="text" id="filter-concurrents-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-4"><button id="add-concurrent-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">+ Ajouter un Concurrent</button><div><span id="save-concurrents-message" class="text-green-600 font-bold mr-4"></span><button id="save-concurrents-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-2 md:p-4 rounded-xl overflow-x-auto shadow-inner"><table id="concurrents-admin-table" class="divide-y divide-gray-200"><thead class="bg-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tl-xl">N°</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Concurrent</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Enfant</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Dossier Inscription</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Assurance</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Paiement Cotisation</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Équipements Sécurité</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Contrôle Tech.</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="concurrents-admin-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
-            document.getElementById('content-race').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><div id="chrono-container" class="mb-6 p-4 md:p-6 bg-gray-50 rounded-2xl shadow-inner"><div class="text-center mb-4"><h2 id="current-manche-display" class="text-3xl font-bold text-blue-600"></h2></div><div class="max-w-md mx-auto"><div class="mb-4"><label for="chrono-search-input" class="block text-sm font-medium text-gray-700 mb-1">Concurrent au départ (par N° ou nom)</label><input type="text" id="chrono-search-input" list="concurrents-datalist" placeholder="Rechercher..." class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"><datalist id="concurrents-datalist"></datalist></div><div id="selected-concurrent-display" class="text-center font-bold text-xl text-gray-700 h-8 mb-4"></div><div id="chrono-display" class="text-5xl font-bold text-center text-blue-600 bg-white p-4 rounded-xl mb-4 shadow">00:00:00</div><div class="grid grid-cols-2 gap-3 mt-auto"><button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Démarrer</button><button id="stop-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Arrêter et Enregistrer</button><button id="reset-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200 col-span-2">Réinitialiser</button></div></div></div><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Classement de la Course</h2><input type="text" id="filter-race-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-2 flex-wrap justify-center sm:justify-end"><button id="reset-race-btn" class="bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Réinitialiser Course</button><button id="new-heat-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Manche Suivante</button><button id="previous-heat-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Temps Manche Préc.</button><button id="podium-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-xl transition duration-200">Podium</button></div></div><div id="race-table-container" class="bg-gray-100 p-2 md:p-4 rounded-xl shadow-inner overflow-x-auto"><table id="race-table" class="divide-y divide-gray-200"><thead id="race-table-head" class="bg-gray-200 sticky top-0"></thead><tbody id="race-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
+            document.getElementById('content-concurrents').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Liste des Concurrents</h2><input type="text" id="filter-concurrents-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-4"><button id="add-concurrent-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">+ Ajouter un Concurrent</button><div><span id="save-concurrents-message" class="text-green-600 font-bold mr-4"></span><button id="save-concurrents-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-2 md:p-4 rounded-xl overflow-x-auto shadow-inner"><table id="concurrents-admin-table" class="divide-y divide-gray-200"><thead class="bg-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tl-xl">Concurrent</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Enfant</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Dossier Inscription</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Assurance</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Paiement Cotisation</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Équipements Sécurité</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Contrôle Tech.</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="concurrents-admin-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
+            document.getElementById('content-race').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><div id="chrono-container" class="mb-6 p-4 md:p-6 bg-gray-50 rounded-2xl shadow-inner"><div class="text-center mb-4"><h2 id="current-manche-display" class="text-3xl font-bold text-blue-600"></h2></div><div class="max-w-md mx-auto"><div class="mb-4"><label for="chrono-search-input" class="block text-sm font-medium text-gray-700 mb-1">Concurrent au départ (par nom)</label><input type="text" id="chrono-search-input" list="concurrents-datalist" placeholder="Rechercher..." class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"><datalist id="concurrents-datalist"></datalist></div><div id="selected-concurrent-display" class="text-center font-bold text-xl text-gray-700 h-8 mb-4"></div><div id="chrono-display" class="text-5xl font-bold text-center text-blue-600 bg-white p-4 rounded-xl mb-4 shadow">00:00:00</div><div class="grid grid-cols-2 gap-3 mt-auto"><button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Démarrer</button><button id="stop-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Arrêter et Enregistrer</button><button id="reset-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200 col-span-2">Réinitialiser</button></div></div></div><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Classement de la Course</h2><input type="text" id="filter-race-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-2 flex-wrap justify-center sm:justify-end"><button id="reset-race-btn" class="bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Réinitialiser Course</button><button id="new-heat-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Manche Suivante</button></div></div><div id="race-table-container" class="bg-gray-100 p-2 md:p-4 rounded-xl shadow-inner overflow-x-auto"><table id="race-table" class="divide-y divide-gray-200"><thead id="race-table-head" class="bg-gray-200 sticky top-0"></thead><tbody id="race-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
+            document.getElementById('content-podium').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Résultats & Podiums</h2><div class="flex flex-col sm:flex-row justify-center items-center gap-4 flex-wrap"><button id="current-heat-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition duration-200 text-lg">Course en cours</button><button id="previous-heat-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-xl transition duration-200 text-lg">Temps Course Précédente</button><button id="podium-fastest-lap-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-xl transition duration-200 text-lg">Podium Descente Rapide</button><button id="podium-grand-prix-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl transition duration-200 text-lg">Podium Grand Prix</button></div></div>` + creditsButtonHTML;
             document.getElementById('content-admin').innerHTML = creditsButtonHTML + `
                 <div class="bg-white shadow-xl rounded-2xl p-4 md:p-6">
                     <div class="mb-6 border-b border-gray-200">
@@ -592,11 +607,14 @@
             ` + creditsButtonHTML;
 
             document.getElementById('add-benevole-modal').innerHTML = `<div class="modal-content max-w-md"><div class="modal-header"><h2 id="modal-title">Ajouter un nouveau bénévole</h2><button class="modal-close-button" id="close-modal-btn">&times;</button></div><form id="add-benevole-form" class="space-y-4"><div><label for="nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="nom" name="nom" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></div><div><label for="prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="prenom" name="prenom" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></div><div><label for="tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="text" id="tel" name="tel" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex justify-end pt-4"><button type="submit" id="modal-submit-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">Ajouter</button></div></form></div>`;
-            document.getElementById('add-concurrent-modal').innerHTML = `<div class="modal-content max-w-md"><div class="modal-header"><h2 id="concurrent-modal-title">Ajouter un Concurrent</h2><button class="modal-close-button" id="close-concurrent-modal-btn">&times;</button></div><form id="add-concurrent-form-modal" class="space-y-4"><div><label for="concurrent-numero-modal" class="block text-sm font-medium text-gray-700">N°</label><input type="number" id="concurrent-numero-modal" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div><label for="concurrent-nom-modal" class="block text-sm font-medium text-gray-700">Nom Concurrent / Équipe</label><input type="text" id="concurrent-nom-modal" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div class="flex items-center"><input type="checkbox" id="concurrent-enfant-modal" class="h-4 w-4 text-blue-600 rounded mr-2"><label for="concurrent-enfant-modal" class="text-sm font-medium text-gray-700">Enfant 🧒</label></div><div class="flex justify-end pt-4"><button type="submit" id="concurrent-modal-submit-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">Ajouter</button></div></form></div>`;
+            document.getElementById('add-concurrent-modal').innerHTML = `<div class="modal-content max-w-md"><div class="modal-header"><h2 id="concurrent-modal-title">Ajouter un Concurrent</h2><button class="modal-close-button" id="close-concurrent-modal-btn">&times;</button></div><form id="add-concurrent-form-modal" class="space-y-4"><div><label for="concurrent-nom-modal" class="block text-sm font-medium text-gray-700">Nom Concurrent / Équipe</label><input type="text" id="concurrent-nom-modal" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div class="flex items-center"><input type="checkbox" id="concurrent-enfant-modal" class="h-4 w-4 text-blue-600 rounded mr-2"><label for="concurrent-enfant-modal" class="text-sm font-medium text-gray-700">Enfant 🧒</label></div><div class="flex justify-end pt-4"><button type="submit" id="concurrent-modal-submit-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">Ajouter</button></div></form></div>`;
             
             // Re-select all elements after injection
             const tableBody = document.getElementById('table-body'), toggleTelCheckbox = document.getElementById('toggleTel'), addBenevoleBtn = document.getElementById('add-benevole-btn'), saveBtn = document.getElementById('save-btn'), closeModalBtn = document.getElementById('close-modal-btn'), addBenevoleForm = document.getElementById('add-benevole-form'), filterInput = document.getElementById('filter-input'), filterMissingInfoCheckbox = document.getElementById('filter-missing-info'), filterFonction = document.getElementById('filter-fonction'), filterLieu = document.getElementById('filter-lieu');
-            const chronoDisplay=document.getElementById("chrono-display"),startBtn=document.getElementById("start-btn"),stopBtn=document.getElementById("stop-btn"),resetBtn=document.getElementById("reset-btn"),addConcurrentBtn = document.getElementById('add-concurrent-btn'),concurrentsAdminBody = document.getElementById('concurrents-admin-body'),saveConcurrentsBtn = document.getElementById('save-concurrents-btn'),saveConcurrentsMessage = document.getElementById('save-concurrents-message'),addUserForm = document.getElementById('add-user-form'),accessTableBody = document.getElementById('access-table-body'), newHeatBtn = document.getElementById('new-heat-btn'), podiumBtn = document.getElementById('podium-btn'), previousHeatBtn = document.getElementById('previous-heat-btn'), currentMancheDisplay = document.getElementById('current-manche-display'), gridScreen=document.getElementById("starting-grid-screen"),closeGridBtn=document.getElementById("close-grid-btn"), resetRaceBtn = document.getElementById('reset-race-btn'), importBtn = document.getElementById('import-btn'), exportBtn = document.getElementById('export-btn'), importFile = document.getElementById('import-file'), creditsModal = document.getElementById('credits-modal'), closeCreditsModalBtn = document.getElementById('close-credits-modal-btn'), addConcurrentModal = document.getElementById('add-concurrent-modal'), closeConcurrentModalBtn = document.getElementById('close-concurrent-modal-btn'), addConcurrentFormModal = document.getElementById('add-concurrent-form-modal'), cancelEditUserBtn = document.getElementById('cancel-edit-user-btn'), addUserBtn = document.getElementById('add-user-btn'), filterConcurrentsInput = document.getElementById('filter-concurrents-input'), filterRaceInput = document.getElementById('filter-race-input'), filterAccessInput = document.getElementById('filter-access-input'), resetBenevolesBtn = document.getElementById('reset-benevoles-btn'), resetConcurrentsBtn = document.getElementById('reset-concurrents-btn'), chronoSearchInput = document.getElementById('chrono-search-input'), concurrentsDatalist = document.getElementById('concurrents-datalist'), selectedConcurrentDisplay = document.getElementById('selected-concurrent-display'), timeConfirmationModal = document.getElementById('time-confirmation-modal'), closeTimeConfirmModalBtn = document.getElementById('close-time-confirm-modal-btn');
+            const chronoDisplay=document.getElementById("chrono-display"),startBtn=document.getElementById("start-btn"),stopBtn=document.getElementById("stop-btn"),resetBtn=document.getElementById("reset-btn"),addConcurrentBtn = document.getElementById('add-concurrent-btn'),concurrentsAdminBody = document.getElementById('concurrents-admin-body'),saveConcurrentsBtn = document.getElementById('save-concurrents-btn'),saveConcurrentsMessage = document.getElementById('save-concurrents-message'),addUserForm = document.getElementById('add-user-form'),accessTableBody = document.getElementById('access-table-body'), newHeatBtn = document.getElementById('new-heat-btn'), previousHeatBtn = document.getElementById('previous-heat-btn'), currentMancheDisplay = document.getElementById('current-manche-display'), gridScreen=document.getElementById("starting-grid-screen"),closeGridBtn=document.getElementById("close-grid-btn"), resetRaceBtn = document.getElementById('reset-race-btn'), importBtn = document.getElementById('import-btn'), exportBtn = document.getElementById('export-btn'), importFile = document.getElementById('import-file'), creditsModal = document.getElementById('credits-modal'), closeCreditsModalBtn = document.getElementById('close-credits-modal-btn'), addConcurrentModal = document.getElementById('add-concurrent-modal'), closeConcurrentModalBtn = document.getElementById('close-concurrent-modal-btn'), addConcurrentFormModal = document.getElementById('add-concurrent-form-modal'), cancelEditUserBtn = document.getElementById('cancel-edit-user-btn'), addUserBtn = document.getElementById('add-user-btn'), filterConcurrentsInput = document.getElementById('filter-concurrents-input'), filterRaceInput = document.getElementById('filter-race-input'), filterAccessInput = document.getElementById('filter-access-input'), resetBenevolesBtn = document.getElementById('reset-benevoles-btn'), resetConcurrentsBtn = document.getElementById('reset-concurrents-btn'), chronoSearchInput = document.getElementById('chrono-search-input'), concurrentsDatalist = document.getElementById('concurrents-datalist'), selectedConcurrentDisplay = document.getElementById('selected-concurrent-display'), timeConfirmationModal = document.getElementById('time-confirmation-modal'), closeTimeConfirmModalBtn = document.getElementById('close-time-confirm-modal-btn');
+            const podiumFastestLapBtn = document.getElementById('podium-fastest-lap-btn');
+            const podiumGrandPrixBtn = document.getElementById('podium-grand-prix-btn');
+            const currentHeatBtn = document.getElementById('current-heat-btn');
             
             // =========================
             // BÉNÉVOLES LOGIC
@@ -987,7 +1005,6 @@
                     const concurrent = concurrents.find(c => c.id === concurrentId);
                     modalTitle.textContent = "Modifier le Concurrent";
                     modalSubmitBtn.textContent = "Enregistrer";
-                    document.getElementById('concurrent-numero-modal').value = concurrent.numero;
                     document.getElementById('concurrent-nom-modal').value = concurrent.nom;
                     document.getElementById('concurrent-enfant-modal').checked = concurrent.isChild;
                 } else {
@@ -1004,21 +1021,19 @@
 
                 concurrentsAdminBody.innerHTML = "";
                 filteredData.sort((a, b) => a.numero - b.numero).forEach(concurrent => {
-                    const concurrentIndex = concurrents.findIndex(c => c.numero === concurrent.numero);
                     const row = document.createElement("tr");
                     row.innerHTML = `
-                        <td class="px-4 py-3 text-sm">${concurrent.numero}</td>
                         <td class="px-4 py-3 text-sm">${concurrent.nom}</td>
-                        <td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${concurrent.numero}" data-prop="isChild" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.isChild ? "checked" : ""}></td>
-                        <td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${concurrent.numero}" data-prop="documents.dossier" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.documents.dossier ? "checked" : ""}></td>
-                        <td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${concurrent.numero}" data-prop="documents.assurance" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.documents.assurance ? "checked" : ""}></td>
+                        <td class="px-4 py-3 text-center"><input type="checkbox" data-id="${concurrent.id}" data-prop="isChild" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.isChild ? "checked" : ""}></td>
+                        <td class="px-4 py-3 text-center"><input type="checkbox" data-id="${concurrent.id}" data-prop="documents.dossier" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.documents.dossier ? "checked" : ""}></td>
+                        <td class="px-4 py-3 text-center"><input type="checkbox" data-id="${concurrent.id}" data-prop="documents.assurance" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.documents.assurance ? "checked" : ""}></td>
                         <td class="px-4 py-3 text-center">
                             <div class="flex items-center justify-center space-x-2">
-                                <input type="checkbox" data-numero="${concurrent.numero}" data-prop="documents.paiement.ok" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.documents.paiement.ok ? "checked" : ""}>
-                                <input type="text" placeholder="€" value="${concurrent.documents.paiement.montant}" data-numero="${concurrent.numero}" class="paiement-input text-sm">
+                                <input type="checkbox" data-id="${concurrent.id}" data-prop="documents.paiement.ok" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.documents.paiement.ok ? "checked" : ""}>
+                                <input type="text" placeholder="€" value="${concurrent.documents.paiement.montant}" data-id="${concurrent.id}" class="paiement-input text-sm">
                             </div>
                         </td>
-                        <td class="px-4 py-3 text-center"><input type="checkbox" data-numero="${concurrent.numero}" data-prop="equipements" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.equipements ? "checked" : ""}></td>
+                        <td class="px-4 py-3 text-center"><input type="checkbox" data-id="${concurrent.id}" data-prop="equipements" class="doc-check h-4 w-4 text-blue-600 rounded" ${concurrent.equipements ? "checked" : ""}></td>
                         <td class="px-4 py-3"></td>
                         <td class="px-4 py-3 text-sm">
                             <div class="flex items-center gap-2 justify-center">
@@ -1042,14 +1057,14 @@
                     select.className = getSelectClass(concurrent.controle);
                 
                     select.addEventListener("change", (event) => {
-                        const targetConcurrent = concurrents[concurrentIndex];
+                        const targetConcurrent = concurrents.find(c => c.id === concurrent.id);
                         if (targetConcurrent) {
                             targetConcurrent.controle = event.target.value;
                             event.target.className = getSelectClass(event.target.value);
                         }
                     });
                 
-                    row.children[7].appendChild(select);
+                    row.children[6].appendChild(select);
                     concurrentsAdminBody.appendChild(row);
                 });
                 
@@ -1067,9 +1082,9 @@
                 }));
                 
                 document.querySelectorAll(".doc-check").forEach(checkbox => checkbox.addEventListener("change", event => {
-                    const numero = event.target.dataset.numero;
+                    const id = event.target.dataset.id;
                     const propPath = event.target.dataset.prop;
-                    const targetConcurrent = concurrents.find(c => c.numero == numero);
+                    const targetConcurrent = concurrents.find(c => c.id === id);
                     if (targetConcurrent) {
                         const props = propPath.split('.');
                         let current = targetConcurrent;
@@ -1081,8 +1096,8 @@
                 }));
                 
                 document.querySelectorAll(".paiement-input").forEach(input => input.addEventListener("input", event => {
-                    const numero = event.target.dataset.numero;
-                    const targetConcurrent = concurrents.find(c => c.numero == numero);
+                    const id = event.target.dataset.id;
+                    const targetConcurrent = concurrents.find(c => c.id === id);
                     if (targetConcurrent) {
                         targetConcurrent.documents.paiement.montant = event.target.value;
                     }
@@ -1096,6 +1111,17 @@
                 const seconds = String(date.getUTCSeconds()).padStart(2, "0");
                 const centiseconds = String(date.getUTCMilliseconds()).padStart(3, "0").slice(0, 2);
                 return `${minutes}:${seconds}:${centiseconds}`;
+            }
+
+            function formatEcart(timeInMillis) {
+                if (timeInMillis === null || timeInMillis === Infinity || typeof timeInMillis === 'undefined' || timeInMillis <= 0) {
+                    return "-";
+                }
+                const date = new Date(timeInMillis);
+                const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+                const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+                const centiseconds = String(date.getUTCMilliseconds()).padStart(3, "0").slice(0, 2);
+                return `+${minutes}:${seconds}:${centiseconds}`;
             }
 
             function parseTimeToMillis(timeStr) {
@@ -1132,9 +1158,9 @@
             async function startChrono() {
                 const chronoSnapshot = await getDoc(chronoDocRef);
                 const chronoData = chronoSnapshot.data();
-                const selectedConcurrent = chronoData ? chronoData.selectedConcurrent : null;
+                const selectedConcurrentId = chronoData ? chronoData.selectedConcurrent : null;
                 
-                if (!selectedConcurrent) {
+                if (!selectedConcurrentId) {
                     showConfirmationModal("Veuillez sélectionner un concurrent avant de démarrer.", () => {}, "Aucun Concurrent Sélectionné");
                     return;
                 }
@@ -1142,7 +1168,7 @@
                 await updateDoc(chronoDocRef, {
                     running: true,
                     startTime: new Date().getTime(),
-                    currentConcurrent: selectedConcurrent,
+                    currentConcurrent: selectedConcurrentId,
                     selectedConcurrent: null
                 });
             }
@@ -1155,13 +1181,51 @@
                 const endTime = new Date().getTime();
                 const startTime = chronoData.startTime;
                 const difference = endTime - startTime;
-                const concurrentNumero = chronoData.currentConcurrent;
-                const concurrent = concurrents.find(c => c.numero == concurrentNumero);
+                const concurrentId = chronoData.currentConcurrent;
+                const concurrent = concurrents.find(c => c.id == concurrentId);
 
                 if (concurrent) {
                     const manches = concurrent.manches;
                     manches[currentManche - 1] = difference;
                     await updateDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, concurrent.id), { manches: manches });
+                    
+                    const allConcurrentsWithNewTime = JSON.parse(JSON.stringify(concurrents)); // Deep copy to avoid mutation
+                    const concurrentToUpdate = allConcurrentsWithNewTime.find(c => c.id === concurrent.id);
+                    if (concurrentToUpdate) {
+                        concurrentToUpdate.manches = manches;
+                    }
+
+                    allConcurrentsWithNewTime.forEach(c => {
+                        const officialRuns = c.manches.slice(2).filter(t => t !== null && t !== undefined);
+                        c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
+                    });
+
+                    const ranked = allConcurrentsWithNewTime.filter(c => c.meilleurTemps !== null).sort((a, b) => a.meilleurTemps - b.meilleurTemps);
+                    const rankIndex = ranked.findIndex(c => c.id === concurrent.id);
+                    const rank = rankIndex !== -1 ? rankIndex + 1 : null;
+
+                    let ecartPremier = null;
+                    let ecartPrecedent = null;
+                    let nomPrecedent = null;
+                    
+                    if (rank > 1 && ranked.length > 1) {
+                        const tempsPremier = ranked[0].meilleurTemps;
+                        ecartPremier = concurrentToUpdate.meilleurTemps - tempsPremier;
+
+                        const concurrentPrecedent = ranked[rankIndex - 1];
+                        ecartPrecedent = concurrentToUpdate.meilleurTemps - concurrentPrecedent.meilleurTemps;
+                        nomPrecedent = concurrentPrecedent.nom;
+                    }
+
+                    let isNewBestRunEver = false;
+                    const allRuns = allConcurrentsWithNewTime.flatMap(c => c.manches).filter(t => t !== null);
+                    if (allRuns.length > 0) {
+                        const bestRunEver = Math.min(...allRuns);
+                        if (difference === bestRunEver) {
+                            isNewBestRunEver = true;
+                        }
+                    }
+
 
                     await updateDoc(chronoDocRef, {
                         running: false,
@@ -1170,8 +1234,12 @@
                         selectedConcurrent: null,
                         lastRecordedTime: {
                             nom: concurrent.nom,
-                            numero: concurrent.numero,
-                            time: difference
+                            time: difference,
+                            rank: rank,
+                            ecartPremier: ecartPremier,
+                            ecartPrecedent: ecartPrecedent,
+                            nomPrecedent: nomPrecedent,
+                            isNewBestRunEver: isNewBestRunEver
                         }
                     });
                 } else {
@@ -1225,7 +1293,6 @@
                 dataToRender.forEach(c => {
                     const officialRuns = c.manches.slice(2).filter(t => t !== null && t !== undefined);
                     c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
-                    c.tempsTotal = officialRuns.length > 0 ? officialRuns.reduce((a, b) => a + b, 0) : null;
                 });
 
                 dataToRender.sort((a, b) => {
@@ -1233,14 +1300,16 @@
                     if (b.meilleurTemps === null) return -1;
                     return a.meilleurTemps - b.meilleurTemps;
                 });
+                
+                const tempsPremier = dataToRender.length > 0 && dataToRender[0].meilleurTemps !== null ? dataToRender[0].meilleurTemps : null;
 
-                const headers = ['Cl.', 'N°', 'Concurrent'];
+                const headers = ['Cl.', 'Concurrent'];
                 const mancheHeaders = Array.from({ length: currentManche }, (_, i) => i < 2 ? `Test ${i + 1}` : `Course ${i - 1}`);
-                headers.push(...mancheHeaders, 'Temps Total', 'Meilleur Temps');
+                headers.push(...mancheHeaders, 'Meilleur Temps', 'Écart 1er');
                 
                 let headerHTML = '<tr>';
                 headers.forEach((h, i) => {
-                    const isCurrentMancheCol = (i === (3 + currentManche - 1));
+                    const isCurrentMancheCol = (i === (2 + currentManche - 1));
                     headerHTML += `<th id="${isCurrentMancheCol ? 'current-heat-header' : ''}" class="px-4 py-3 text-left text-xs font-bold uppercase">${h}</th>`;
                 });
                 headerHTML += '</tr>';
@@ -1255,10 +1324,11 @@
                     if (classement === 1) classementHTML = `🥇 ${classement}`;
                     else if (classement === 2) classementHTML = `🥈 ${classement}`;
                     else if (classement === 3) classementHTML = `🥉 ${classement}`;
+                    
+                    const ecartPremier = tempsPremier !== null && concurrent.meilleurTemps !== null ? concurrent.meilleurTemps - tempsPremier : null;
 
                     let rowHTML = `
                         <td class="px-4 py-3 text-base font-bold text-center">${classementHTML}</td>
-                        <td class="px-4 py-3 text-sm">${concurrent.numero}</td>
                         <td class="px-4 py-3 text-sm">${concurrent.nom} ${concurrent.isChild ? '🧒' : ''}</td>
                     `;
                     
@@ -1267,8 +1337,8 @@
                     }
                     
                     rowHTML += `
-                        <td class="px-4 py-3 text-sm font-bold">${formatTime(concurrent.tempsTotal)}</td>
                         <td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(concurrent.meilleurTemps)}</td>
+                        <td class="px-4 py-3 text-sm text-red-500 font-semibold">${formatEcart(ecartPremier)}</td>
                     `;
                     row.innerHTML = rowHTML;
                 });
@@ -1303,7 +1373,7 @@
                 concurrentsDatalist.innerHTML = '';
                 concurrents.sort((a, b) => a.numero - b.numero).forEach(concurrent => {
                     const option = document.createElement("option");
-                    option.value = `N°${concurrent.numero} - ${concurrent.nom}`;
+                    option.value = concurrent.nom;
                     concurrentsDatalist.appendChild(option);
                 });
             }
@@ -1314,22 +1384,101 @@
                 const gridBody = document.getElementById("grid-table-body");
                 gridBody.innerHTML = "";
 
-                if (type === 'podium') {
-                    title.textContent = "Podium Final";
-                    gridHead.innerHTML = `<tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">N°</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Meilleur Temps</th></tr>`;
-                    const ranked = [...concurrents].sort((a,b) => (a.meilleurTemps || Infinity) - (b.meilleurTemps || Infinity));
+                if (type === 'podium-fastest-lap') {
+                    title.textContent = "Podium - Descente la plus Rapide";
+                    gridHead.innerHTML = `<tr>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Meilleur Temps</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Écart 1er</th>
+                    </tr>`;
+                    const ranked = [...concurrents].filter(c => c.meilleurTemps !== null).sort((a,b) => a.meilleurTemps - b.meilleurTemps);
+                    const tempsPremier = ranked.length > 0 ? ranked[0].meilleurTemps : null;
+
                     ranked.forEach((c, i) => {
-                        gridBody.innerHTML += `<tr><td class="px-4 py-3 text-sm font-bold">${i+1}</td><td class="px-4 py-3 text-sm">${c.numero}</td><td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.meilleurTemps)}</td></tr>`;
+                        const ecartPremier = tempsPremier !== null ? c.meilleurTemps - tempsPremier : null;
+                        
+                        let classementHTML = i + 1;
+                        if (classementHTML === 1) classementHTML = `🥇 ${classementHTML}`;
+                        else if (classementHTML === 2) classementHTML = `🥈 ${classementHTML}`;
+                        else if (classementHTML === 3) classementHTML = `🥉 ${classementHTML}`;
+
+                        gridBody.innerHTML += `<tr>
+                            <td class="px-4 py-3 text-sm font-bold">${classementHTML}</td>
+                            <td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.meilleurTemps)}</td>
+                            <td class="px-4 py-3 text-sm text-red-500">${formatEcart(ecartPremier)}</td>
+                        </tr>`;
                     });
-                } else { // Previous heat
-                    if (currentManche === 1) { showConfirmationModal("Aucune manche précédente à afficher.", () => {}, "Information"); return; }
-                    const prevMancheIndex = currentManche - 2;
-                    const prevMancheName = prevMancheIndex < 2 ? `Descente test ${prevMancheIndex + 1}` : `Course ${prevMancheIndex - 1}`;
-                    title.textContent = `Classement - ${prevMancheName}`;
-                    gridHead.innerHTML = `<tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">N°</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Temps ${prevMancheName}</th></tr>`;
-                    const ranked = [...concurrents].filter(c => c.manches[prevMancheIndex] !== null).sort((a,b) => a.manches[prevMancheIndex] - b.manches[prevMancheIndex]);
-                      ranked.forEach((c, i) => {
-                        gridBody.innerHTML += `<tr><td class="px-4 py-3 text-sm font-bold">${i+1}</td><td class="px-4 py-3 text-sm">${c.numero}</td><td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td><td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.manches[prevMancheIndex])}</td></tr>`;
+                } else if (type === 'podium-grand-prix') {
+                    title.textContent = "Podium - Grand Prix";
+                     gridHead.innerHTML = `<tr>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Temps Total</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Écart 1er</th>
+                    </tr>`;
+                    
+                    concurrents.forEach(c => {
+                        const officialRuns = c.manches.slice(2).filter(t => t !== null && t !== undefined);
+                        c.completedRuns = officialRuns.length;
+                        c.tempsTotal = officialRuns.length > 0 ? officialRuns.reduce((a, b) => a + b, 0) : null;
+                    });
+                    
+                    const maxCourses = currentManche > 2 ? currentManche - 2 : 0;
+                    
+                    let ranked = [];
+                    if (maxCourses > 0) {
+                        ranked = concurrents.filter(c => c.completedRuns === maxCourses && c.tempsTotal !== null).sort((a,b) => a.tempsTotal - b.tempsTotal);
+                    }
+
+                    const tempsPremier = ranked.length > 0 ? ranked[0].tempsTotal : null;
+
+                    ranked.forEach((c, i) => {
+                        const ecartPremier = tempsPremier !== null ? c.tempsTotal - tempsPremier : null;
+                        
+                        let classementHTML = i + 1;
+                        if (classementHTML === 1) classementHTML = `🥇 ${classementHTML}`;
+                        else if (classementHTML === 2) classementHTML = `🥈 ${classementHTML}`;
+                        else if (classementHTML === 3) classementHTML = `🥉 ${classementHTML}`;
+
+                        gridBody.innerHTML += `<tr>
+                            <td class="px-4 py-3 text-sm font-bold">${classementHTML}</td>
+                            <td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.tempsTotal)}</td>
+                            <td class="px-4 py-3 text-sm text-red-500">${formatEcart(ecartPremier)}</td>
+                        </tr>`;
+                    });
+                } else { // Previous or Current heat
+                    const isCurrent = type === 'current';
+                    if (!isCurrent && currentManche === 1) { showConfirmationModal("Aucune manche précédente à afficher.", () => {}, "Information"); return; }
+                    
+                    const mancheIndex = isCurrent ? currentManche - 1 : currentManche - 2;
+                    const mancheName = mancheIndex < 2 ? `Descente test ${mancheIndex + 1}` : `Course ${mancheIndex - 1}`;
+                    
+                    title.textContent = isCurrent ? `Classement - ${mancheName} (en cours)` : `Classement - ${mancheName}`;
+                    gridHead.innerHTML = `<tr>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Temps</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Écart 1er</th>
+                    </tr>`;
+                    const ranked = [...concurrents].filter(c => c.manches[mancheIndex] !== null).sort((a,b) => a.manches[mancheIndex] - b.manches[mancheIndex]);
+                    const tempsPremier = ranked.length > 0 ? ranked[0].manches[mancheIndex] : null;
+
+                    ranked.forEach((c, i) => {
+                        const ecartPremier = tempsPremier !== null ? c.manches[mancheIndex] - tempsPremier : null;
+                        let classementHTML = i + 1;
+                        if (classementHTML === 1) classementHTML = `🥇 ${classementHTML}`;
+                        else if (classementHTML === 2) classementHTML = `🥈 ${classementHTML}`;
+                        else if (classementHTML === 3) classementHTML = `🥉 ${classementHTML}`;
+
+                        gridBody.innerHTML += `<tr>
+                            <td class="px-4 py-3 text-sm font-bold">${classementHTML}</td>
+                            <td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.manches[mancheIndex])}</td>
+                            <td class="px-4 py-3 text-sm text-red-500">${formatEcart(ecartPremier)}</td>
+                        </tr>`;
                     });
                 }
                 mainApp.style.display="none",gridScreen.style.display="flex"
@@ -1347,19 +1496,16 @@
             });
             addConcurrentFormModal.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const numero = document.getElementById("concurrent-numero-modal").value;
                 const nom = document.getElementById("concurrent-nom-modal").value;
                 const isChild = document.getElementById("concurrent-enfant-modal").checked;
-                if (concurrents.some(c => c.numero == numero && c.id !== editingConcurrentId)) {
-                    alert("Ce numéro de concurrent existe déjà.");
-                    return;
-                }
+                
                 if (editingConcurrentId) {
                     const docRef = doc(db, `artifacts/${appId}/public/data/concurrents`, editingConcurrentId);
-                    await updateDoc(docRef, { numero: parseInt(numero), nom: nom, isChild: isChild });
+                    await updateDoc(docRef, { nom: nom, isChild: isChild });
                 } else {
+                    const newNumero = concurrents.length > 0 ? Math.max(...concurrents.map(c => c.numero)) + 1 : 1;
                     await addDoc(collection(db, `artifacts/${appId}/public/data/concurrents`), {
-                        numero: parseInt(numero),
+                        numero: newNumero,
                         nom: nom,
                         isChild: isChild,
                         manches: new Array(8).fill(null),
@@ -1377,17 +1523,9 @@
             
             chronoSearchInput.addEventListener('input', async () => {
                 const value = chronoSearchInput.value;
-                const selectedOption = Array.from(concurrentsDatalist.options).find(opt => opt.value === value);
-                let numero = null;
-
-                if (selectedOption) {
-                    const match = value.match(/^N°(\d+)/);
-                    if (match) {
-                        numero = match[1];
-                    }
-                }
-                
-                await updateDoc(chronoDocRef, { selectedConcurrent: numero });
+                const concurrent = concurrents.find(c => c.nom === value);
+                const id = concurrent ? concurrent.id : null;
+                await updateDoc(chronoDocRef, { selectedConcurrent: id });
             });
             
             async function clearDbLastRecordedTime() {
@@ -1402,7 +1540,10 @@
             closeTimeConfirmModalBtn.addEventListener('click', clearDbLastRecordedTime);
 
             previousHeatBtn.addEventListener('click', () => showGrid('previous'));
-            podiumBtn.addEventListener('click', () => showGrid('podium'));
+            currentHeatBtn.addEventListener('click', () => showGrid('current'));
+            podiumFastestLapBtn.addEventListener('click', () => showGrid('podium-fastest-lap'));
+            podiumGrandPrixBtn.addEventListener('click', () => showGrid('podium-grand-prix'));
+
             closeGridBtn.addEventListener('click',()=>{mainApp.style.display="block",gridScreen.style.display="none"});
             filterConcurrentsInput.addEventListener('input', renderConcurrentsAdminTable);
             filterRaceInput.addEventListener('input', renderRaceTable);
@@ -1587,15 +1728,15 @@
                 const role = currentUser.role;
                 let firstVisibleTabId = null;
 
-                const allTabs = ['tab-race', 'tab-concurrents', 'tab-dashboard', 'tab-admin'];
+                const allTabs = ['tab-race', 'tab-podium', 'tab-concurrents', 'tab-dashboard', 'tab-admin'];
                 const visibleTabs = {
-                    'Organisation': ['tab-race', 'tab-concurrents', 'tab-dashboard'],
+                    'Organisation': ['tab-race', 'tab-podium', 'tab-concurrents', 'tab-dashboard'],
                     'Responsable Radio': ['tab-dashboard'],
-                    'MAIRE': ['tab-race', 'tab-dashboard'],
-                    'Chrono Départ': ['tab-race', 'tab-dashboard'],
-                    'Chrono Arrivée': ['tab-race', 'tab-dashboard'],
-                    'Bénévole': ['tab-race', 'tab-dashboard'],
-                    'Concurrent': ['tab-race'],
+                    'MAIRE': ['tab-race', 'tab-podium', 'tab-dashboard'],
+                    'Chrono Départ': ['tab-race', 'tab-podium', 'tab-dashboard'],
+                    'Chrono Arrivée': ['tab-race', 'tab-podium', 'tab-dashboard'],
+                    'Bénévole': ['tab-race', 'tab-podium', 'tab-dashboard'],
+                    'Concurrent': ['tab-race', 'tab-podium'],
                     'Gestionnaire': ['tab-concurrents', 'tab-dashboard']
                 };
 
@@ -1668,7 +1809,8 @@
 
                 if (!canSeeChronoAndPodium || isRestrictedUser) {
                     document.getElementById('chrono-container').style.display = 'none';
-                    podiumBtn.style.display = 'none';
+                    podiumFastestLapBtn.style.display = 'none';
+                    podiumGrandPrixBtn.style.display = 'none';
                     previousHeatBtn.style.display = 'none';
                     newHeatBtn.style.display = 'none';
                     resetRaceBtn.style.display = 'none';
@@ -1846,11 +1988,50 @@
                 clearTimeout(modalTimeout);
                 if (chronoData.lastRecordedTime) {
                     const recordedData = chronoData.lastRecordedTime;
-                    document.getElementById('time-confirm-concurrent').textContent = `N°${recordedData.numero} - ${recordedData.nom}`;
+                    const rankDisplay = document.getElementById('time-confirm-rank');
+                    const ecartPremierDisplay = document.getElementById('time-confirm-ecart-premier');
+                    const ecartPrecedentDisplay = document.getElementById('time-confirm-ecart-precedent');
+                    const newRecordBanner = document.getElementById('new-record-banner');
+                    
+                    document.getElementById('time-confirm-concurrent').textContent = recordedData.nom;
                     document.getElementById('time-confirm-time').textContent = formatTime(recordedData.time);
+                    
+                    // Rank
+                    if (recordedData.rank) {
+                        let suffix = recordedData.rank === 1 ? 'er' : 'ème';
+                        rankDisplay.textContent = `Classement : ${recordedData.rank}${suffix}`;
+                    } else {
+                        rankDisplay.textContent = "Pas encore classé";
+                    }
+
+                    // Ecart Premier
+                    if (recordedData.rank > 1 && recordedData.ecartPremier) {
+                        ecartPremierDisplay.textContent = `À ${formatEcart(recordedData.ecartPremier)} du 1er`;
+                        ecartPremierDisplay.style.display = 'block';
+                    } else {
+                        ecartPremierDisplay.style.display = 'none';
+                    }
+
+                    // Ecart Precedent
+                    if (recordedData.rank > 1 && recordedData.ecartPrecedent && recordedData.nomPrecedent) {
+                        ecartPrecedentDisplay.textContent = `À ${formatEcart(recordedData.ecartPrecedent)} de ${recordedData.nomPrecedent}`;
+                        ecartPrecedentDisplay.style.display = 'block';
+                    } else if (recordedData.rank === 1) {
+                        ecartPrecedentDisplay.textContent = "Vous êtes le 1er !";
+                        ecartPrecedentDisplay.style.display = 'block';
+                    } else {
+                        ecartPrecedentDisplay.style.display = 'none';
+                    }
+
+                    // New record
+                    if (recordedData.isNewBestRunEver) {
+                        newRecordBanner.style.display = 'block';
+                    } else {
+                        newRecordBanner.style.display = 'none';
+                    }
+
                     timeConfirmationModal.style.display = 'flex';
                     
-                    // The timeout is responsible for clearing the database state
                     modalTimeout = setTimeout(() => {
                         clearDbLastRecordedTime();
                     }, 10000);
@@ -1862,7 +2043,7 @@
                     const startTime = chronoData.startTime;
                     chronoInterval = setInterval(() => updateChronoDisplay(startTime), 10);
                     
-                    const runningConcurrent = concurrents.find(c => c.numero == chronoData.currentConcurrent);
+                    const runningConcurrent = concurrents.find(c => c.id == chronoData.currentConcurrent);
                     if (runningConcurrent) {
                         selectedConcurrentDisplay.textContent = `Course : ${runningConcurrent.nom}`;
                     }
@@ -1874,11 +2055,11 @@
                     chronoSearchInput.disabled = false;
 
                     if (chronoData.selectedConcurrent) {
-                        const selected = concurrents.find(c => c.numero == chronoData.selectedConcurrent);
+                        const selected = concurrents.find(c => c.id == chronoData.selectedConcurrent);
                         if (selected) {
                             selectedConcurrentDisplay.textContent = `Au départ : ${selected.nom}`;
                             if(document.activeElement !== chronoSearchInput) {
-                                 chronoSearchInput.value = `N°${selected.numero} - ${selected.nom}`;
+                                 chronoSearchInput.value = selected.nom;
                             }
                         }
                     } else {
