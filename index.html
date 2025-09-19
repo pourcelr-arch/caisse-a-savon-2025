@@ -157,6 +157,19 @@
 
         #race-table th:nth-child(1), #race-table td:nth-child(1) { width: 50px; }
         #race-table th:nth-child(2), #race-table td:nth-child(2) { width: 200px; }
+
+        /* Styles pour le tableau de bord concurrent */
+        .competitor-card {
+             background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+        }
+         @media (min-width: 768px) {
+            .competitor-card {
+                padding: 2rem;
+            }
+        }
     </style>
 </head>
 <body class="p-2 sm:p-6">
@@ -291,6 +304,71 @@
         
     </div>
 
+    <!-- VUE DU TABLEAU DE BORD CONCURRENT -->
+    <div id="competitor-dashboard-view" class="max-w-7xl mx-auto" style="display: none;">
+        <div class="bg-white shadow-xl rounded-2xl p-4 md:p-6 mb-4 flex justify-between items-center">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Ma Fiche Concurrent</h1>
+            <button id="competitor-logout-btn" class="text-sm bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200">Déconnexion</button>
+        </div>
+        
+        <div class="space-y-6">
+            <div class="competitor-card text-center">
+                <h2 class="text-xl font-semibold text-gray-500">Bienvenue</h2>
+                <p id="competitor-dashboard-name" class="text-4xl font-bold text-blue-600"></p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="competitor-card text-center">
+                    <h3 class="text-lg font-semibold text-gray-600 mb-2">Meilleur Temps</h3>
+                    <p id="competitor-dashboard-best-time" class="text-5xl font-bold font-mono text-gray-800">-</p>
+                </div>
+                <div class="competitor-card text-center">
+                    <h3 class="text-lg font-semibold text-gray-600 mb-2">Classement Général</h3>
+                    <p id="competitor-dashboard-rank" class="text-5xl font-bold text-gray-800">-</p>
+                </div>
+                <div class="competitor-card text-center">
+                    <h3 class="text-lg font-semibold text-gray-600 mb-2">Écart avec le 1er</h3>
+                    <p id="competitor-dashboard-gap" class="text-5xl font-bold font-mono text-red-500">-</p>
+                </div>
+            </div>
+
+            <div class="competitor-card">
+                 <h3 class="text-xl font-semibold text-gray-800 mb-4">Ma Position en Course</h3>
+                 <div class="overflow-x-auto">
+                     <table class="w-full">
+                         <thead>
+                             <tr class="border-b-2 border-gray-200">
+                                 <th class="p-3 text-left text-xs font-bold uppercase">Classement</th>
+                                 <th class="p-3 text-left text-xs font-bold uppercase">Concurrent</th>
+                                 <th class="p-3 text-left text-xs font-bold uppercase">Meilleur Temps</th>
+                             </tr>
+                         </thead>
+                         <tbody id="competitor-dashboard-focused-ranking">
+                             <!-- Le classement ciblé sera injecté ici -->
+                         </tbody>
+                     </table>
+                 </div>
+            </div>
+
+            <div class="competitor-card">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Détail de mes Descentes</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                         <thead>
+                             <tr class="border-b-2 border-gray-200" id="competitor-dashboard-times-head">
+                                <!-- Les entêtes de manches seront injectées ici -->
+                             </tr>
+                         </thead>
+                         <tbody id="competitor-dashboard-times-body">
+                             <!-- Mes temps par manche seront injectés ici -->
+                         </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Modal pour ajouter/modifier un bénévole -->
     <div id="add-benevole-modal" class="modal" style="display:none">
         <!-- Le contenu de la modale sera injecté ici par JS -->
@@ -382,9 +460,11 @@
         // SECTION 1: AUTHENTIFICATION
         const loginScreen = document.getElementById('login-screen');
         const mainApp = document.getElementById('main-app');
+        const competitorDashboardView = document.getElementById('competitor-dashboard-view');
         const loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error');
         const logoutBtn = document.getElementById('logout-btn');
+        const competitorLogoutBtn = document.getElementById('competitor-logout-btn');
         const userInfo = document.getElementById('user-info');
         
         let currentUser = null;
@@ -414,6 +494,30 @@
         const app = initializeFirebaseApp(firebaseConfig);
         db = getFirestore(app);
         const auth = getAuth(app);
+
+        // ===================================
+        // FONCTIONS UTILITAIRES GLOBALES
+        // ===================================
+        function formatTime(timeInMillis) {
+            if (timeInMillis === null || timeInMillis === Infinity || typeof timeInMillis === 'undefined') return "-";
+            const date = new Date(timeInMillis);
+            const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+            const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+            const centiseconds = String(date.getUTCMilliseconds()).padStart(3, "0").slice(0, 2);
+            return `${minutes}:${seconds}:${centiseconds}`;
+        }
+
+        function formatEcart(timeInMillis) {
+            if (timeInMillis === null || timeInMillis === Infinity || typeof timeInMillis === 'undefined' || timeInMillis <= 0) {
+                return "-";
+            }
+            const date = new Date(timeInMillis);
+            const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+            const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+            const centiseconds = String(date.getUTCMilliseconds()).padStart(3, "0").slice(0, 2);
+            return `+${minutes}:${seconds}:${centiseconds}`;
+        }
+
 
         async function authenticateAndStart() {
             try {
@@ -468,13 +572,24 @@
             if (savedUserStr) {
                 const savedUser = JSON.parse(savedUserStr);
                  const foundUser = utilisateursAutorises.find(user => user.id === savedUser.id);
-                  if(foundUser){
-                      currentUser = foundUser;
-                      isSuperAdmin = (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651") || currentUser.role === 'Super Admin';
-                      loginScreen.style.display = 'none';
-                      mainApp.style.display = 'block';
-                      userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`;
-                      startAppLogic();
+                  if (foundUser) {
+                      if (foundUser.role === 'Concurrent') {
+                          if (foundUser.linkedCompetitorId) {
+                            loginScreen.style.display = 'none';
+                            competitorDashboardView.style.display = 'block';
+                            startCompetitorLogic(foundUser.linkedCompetitorId);
+                          } else {
+                            // Cas d'erreur : un concurrent sans concurrent lié. On le déconnecte.
+                            localStorage.removeItem('currentUser');
+                          }
+                      } else {
+                          currentUser = foundUser;
+                          isSuperAdmin = (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651") || currentUser.role === 'Super Admin';
+                          loginScreen.style.display = 'none';
+                          mainApp.style.display = 'block';
+                          userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`;
+                          startAppLogic();
+                      }
                    } else {
                        localStorage.removeItem('currentUser');
                    }
@@ -525,24 +640,51 @@
             });
 
             if (foundUser) {
-                currentUser = foundUser;
-                isSuperAdmin = (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651") || currentUser.role === 'Super Admin';
-                        
-                loginScreen.style.display = 'none';
-                mainApp.style.display = 'block';
-                userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`;
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                startAppLogic();
-                showTutorialModalIfNeeded();
+                localStorage.setItem('currentUser', JSON.stringify(foundUser));
+
+                if (foundUser.role === 'Concurrent') {
+                    if (foundUser.linkedCompetitorId) {
+                        loginScreen.style.display = 'none';
+                        competitorDashboardView.style.display = 'block';
+                        startCompetitorLogic(foundUser.linkedCompetitorId);
+                    } else {
+                        loginError.innerHTML = "<strong>Erreur de compte.</strong><br>Votre accès concurrent n'est lié à aucune fiche. Veuillez contacter un administrateur.";
+                        loginError.classList.remove('hidden');
+                        localStorage.removeItem('currentUser');
+                    }
+                } else {
+                    currentUser = foundUser;
+                    isSuperAdmin = (currentUser.nom === "POURCEL" && currentUser.prenom === "Romain" && currentUser.tel === "0613255651") || currentUser.role === 'Super Admin';
+                    loginScreen.style.display = 'none';
+                    mainApp.style.display = 'block';
+                    userInfo.textContent = `${currentUser.prenom} ${currentUser.nom} (${isSuperAdmin ? 'Super Admin' : currentUser.role})`;
+                    startAppLogic();
+                    showTutorialModalIfNeeded();
+                }
             } else {
+                loginError.innerHTML = `<strong>Informations incorrectes.</strong><br>
+                    Veuillez vérifier les points suivants :<br>
+                    <ul class="list-disc list-inside mt-1">
+                        <li>Le <strong>Nom</strong> doit être en MAJUSCULES.</li>
+                        <li>Le <strong>Prénom</strong> doit commencer par une majuscule.</li>
+                        <li>Le <strong>Téléphone</strong> ne doit contenir que des chiffres, sans espaces.</li>
+                    </ul>`;
                 loginError.classList.remove('hidden');
             }
         });
+
+
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('currentUser');
             localStorage.removeItem('tutorialShown');
             location.reload();
         });
+        competitorLogoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('tutorialShown');
+            location.reload();
+        });
+
 
         // SECTION 2: LOGIQUE DE L'APPLICATION
         function startAppLogic() {
@@ -597,7 +739,7 @@
                     </div>
 
                     <div id="admin-access-section">
-                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><div><h2 class="text-xl font-bold text-gray-800">Gérer les utilisateurs autorisés</h2><p class="text-gray-600 text-sm">Seuls les utilisateurs listés ici peuvent se connecter.</p></div><input type="text" id="filter-access-input" placeholder="Rechercher un utilisateur..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></div><form id="add-user-form" class="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-wrap items-end gap-4"><div class="flex-grow min-w-[150px]"><label for="user-nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="user-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="user-prenom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" id="user-tel" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-role" class="block text-sm font-medium text-gray-700">Rôle</label><select id="user-role" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"><option value="Super Admin">Super Admin</option><option value="Organisation">Organisation</option><option value="Responsable Radio">Responsable Radio</option><option value="MAIRE">MAIRE</option><option value="Chrono Départ">Chrono Départ</option><option value="Chrono Arrivée">Chrono Arrivée</option><option value="Bénévole">Bénévole</option><option value="Concurrent">Concurrent</option></select></div><div class="flex items-center gap-2"><button type="submit" id="add-user-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button><button type="button" id="cancel-edit-user-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl" style="display:none;">Annuler</button></div></form><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-100"><tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Nom Prénom</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Rôle</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th></tr></thead><tbody id="access-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div>
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><div><h2 class="text-xl font-bold text-gray-800">Gérer les utilisateurs autorisés</h2><p class="text-gray-600 text-sm">Seuls les utilisateurs listés ici peuvent se connecter.</p></div><input type="text" id="filter-access-input" placeholder="Rechercher un utilisateur..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></div><form id="add-user-form" class="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-wrap items-end gap-4"><div class="flex-grow min-w-[150px]"><label for="user-nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="user-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="user-prenom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" id="user-tel" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-role" class="block text-sm font-medium text-gray-700">Rôle</label><select id="user-role" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"><option value="Super Admin">Super Admin</option><option value="Organisation">Organisation</option><option value="Responsable Radio">Responsable Radio</option><option value="MAIRE">MAIRE</option><option value="Chrono Départ">Chrono Départ</option><option value="Chrono Arrivée">Chrono Arrivée</option><option value="Bénévole">Bénévole</option><option value="Concurrent">Concurrent</option></select></div><div id="user-competitor-link-container" class="flex-grow min-w-[150px]" style="display:none;"><label for="user-competitor-select" class="block text-sm font-medium text-gray-700">Concurrent Lié</label><select id="user-competitor-select" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></select></div><div class="flex items-center gap-2"><button type="submit" id="add-user-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button><button type="button" id="cancel-edit-user-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl" style="display:none;">Annuler</button></div></form><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-100"><tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Nom Prénom</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Rôle</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th></tr></thead><tbody id="access-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div>
                     </div>
 
                     <div id="admin-reset-section" style="display: none;">
@@ -973,6 +1115,7 @@
                 concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderAllConcurrentsView();
                 populateConcurrentsDatalist();
+                populateCompetitorsForAccessForm(); // Mettre à jour la liste dans le formulaire admin
             });
 
             async function saveConcurrentsData() {
@@ -1102,26 +1245,6 @@
                         targetConcurrent.documents.paiement.montant = event.target.value;
                     }
                 }));
-            }
-
-            function formatTime(timeInMillis) {
-                if (timeInMillis === null || timeInMillis === Infinity || typeof timeInMillis === 'undefined') return "-";
-                const date = new Date(timeInMillis);
-                const minutes = String(date.getUTCMinutes()).padStart(2, "0");
-                const seconds = String(date.getUTCSeconds()).padStart(2, "0");
-                const centiseconds = String(date.getUTCMilliseconds()).padStart(3, "0").slice(0, 2);
-                return `${minutes}:${seconds}:${centiseconds}`;
-            }
-
-            function formatEcart(timeInMillis) {
-                if (timeInMillis === null || timeInMillis === Infinity || typeof timeInMillis === 'undefined' || timeInMillis <= 0) {
-                    return "-";
-                }
-                const date = new Date(timeInMillis);
-                const minutes = String(date.getUTCMinutes()).padStart(2, "0");
-                const seconds = String(date.getUTCSeconds()).padStart(2, "0");
-                const centiseconds = String(date.getUTCMilliseconds()).padStart(3, "0").slice(0, 2);
-                return `+${minutes}:${seconds}:${centiseconds}`;
             }
 
             function parseTimeToMillis(timeStr) {
@@ -1552,11 +1675,35 @@
             // =========================
             // ACCESS LOGIC & INIT
             // =========================
+            const userRoleSelect = document.getElementById('user-role');
+            const userCompetitorLinkContainer = document.getElementById('user-competitor-link-container');
+            const userCompetitorSelect = document.getElementById('user-competitor-select');
+
+            async function populateCompetitorsForAccessForm() {
+                userCompetitorSelect.innerHTML = '<option value="">-- Sélectionnez un concurrent --</option>';
+                const sortedConcurrents = [...concurrents].sort((a,b) => a.numero - b.numero);
+                sortedConcurrents.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.id;
+                    option.textContent = `${c.numero} - ${c.nom}`;
+                    userCompetitorSelect.appendChild(option);
+                });
+            }
+            
+            userRoleSelect.addEventListener('change', () => {
+                if (userRoleSelect.value === 'Concurrent') {
+                    userCompetitorLinkContainer.style.display = 'block';
+                } else {
+                    userCompetitorLinkContainer.style.display = 'none';
+                }
+            });
+
             function resetUserForm() {
                 addUserForm.reset();
                 editingUserId = null;
                 addUserBtn.textContent = '+ Ajouter';
                 cancelEditUserBtn.style.display = 'none';
+                userCompetitorLinkContainer.style.display = 'none';
             }
             
             function openUserEditForm(userId) {
@@ -1566,7 +1713,15 @@
                     document.getElementById('user-nom').value = userToEdit.nom;
                     document.getElementById('user-prenom').value = userToEdit.prenom;
                     document.getElementById('user-tel').value = userToEdit.tel;
-                    document.getElementById('user-role').value = userToEdit.role;
+                    userRoleSelect.value = userToEdit.role;
+                    
+                    if (userToEdit.role === 'Concurrent') {
+                        userCompetitorLinkContainer.style.display = 'block';
+                        userCompetitorSelect.value = userToEdit.linkedCompetitorId || "";
+                    } else {
+                        userCompetitorLinkContainer.style.display = 'none';
+                    }
+
                     addUserBtn.textContent = 'Enregistrer';
                     cancelEditUserBtn.style.display = 'inline-block';
                 }
@@ -1580,11 +1735,19 @@
                 filteredData.forEach(user => {
                     const row = document.createElement("tr");
                     const displayRole = user.role;
+                    let roleInfo = displayRole;
+                    if(user.role === 'Concurrent' && user.linkedCompetitorId) {
+                        const linked = concurrents.find(c => c.id === user.linkedCompetitorId);
+                        if(linked) {
+                            roleInfo += ` (${linked.nom})`;
+                        }
+                    }
+
                     const roleClass = ["Organisation", "Super Admin", "Chrono Départ", "Chrono Arrivée", "MAIRE", "Gestionnaire"].includes(displayRole) ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800";
                     row.innerHTML = `
                         <td class="px-4 py-3 text-sm text-gray-800">${user.prenom} ${user.nom}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">${user.tel}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleClass}">${displayRole}</span></td>
+                        <td class="px-4 py-3 text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleClass}">${roleInfo}</span></td>
                         <td class="px-4 py-3 text-sm text-gray-500">
                            <div class="flex items-center gap-2">
                                 <button data-id="${user.id}" class="edit-user-btn text-blue-600 hover:text-blue-700 text-xs font-medium">Modifier</button>
@@ -1622,12 +1785,19 @@
 
             addUserForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const role = userRoleSelect.value;
                 const userData = {
                     nom: document.getElementById("user-nom").value.trim().toUpperCase(),
                     prenom: document.getElementById("user-prenom").value.trim(),
                     tel: document.getElementById("user-tel").value.replace(/\s/g, ""),
-                    role: document.getElementById("user-role").value
+                    role: role,
+                    linkedCompetitorId: role === 'Concurrent' ? userCompetitorSelect.value : null
                 };
+
+                if (role === 'Concurrent' && !userData.linkedCompetitorId) {
+                    showConfirmationModal("Veuillez lier cet accès à un concurrent.", () => {}, "Action requise");
+                    return;
+                }
 
                 if(editingUserId) {
                     const docRef = doc(db, `artifacts/${appId}/public/data/users`, editingUserId);
@@ -1963,6 +2133,7 @@
                 concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderAllConcurrentsView();
                 populateConcurrentsDatalist();
+                 populateCompetitorsForAccessForm();
             });
             
             onSnapshot(chronoDocRef, (snapshot) => {
@@ -2081,6 +2252,105 @@
             setupPermissions();
         }
         document.addEventListener('DOMContentLoaded', authenticateAndStart);
+
+        // ===================================
+        // NOUVELLE LOGIQUE POUR LA VUE CONCURRENT
+        // ===================================
+        function startCompetitorLogic(competitorId) {
+            const concurrentsCollection = collection(db, `artifacts/${appId}/public/data/concurrents`);
+            const chronoDocRef = doc(db, `artifacts/${appId}/public/data/raceState`, 'chrono');
+
+            let lastRenderedState = '';
+
+            onSnapshot(concurrentsCollection, (concurrentsSnapshot) => {
+                 onSnapshot(chronoDocRef, (chronoSnapshot) => {
+                    const allConcurrents = concurrentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const chronoData = chronoSnapshot.exists() ? chronoSnapshot.data() : { currentManche: 1 };
+                    
+                    const currentState = JSON.stringify(allConcurrents) + JSON.stringify(chronoData);
+                    if (currentState !== lastRenderedState) {
+                         renderCompetitorDashboard(allConcurrents, chronoData, competitorId);
+                         lastRenderedState = currentState;
+                    }
+                });
+            });
+        }
+        
+        function renderCompetitorDashboard(allConcurrents, chronoData, currentCompetitorId) {
+            const me = allConcurrents.find(c => c.id === currentCompetitorId);
+            if (!me) {
+                document.getElementById('competitor-dashboard-name').textContent = "Concurrent non trouvé";
+                return;
+            }
+            
+            // Calcul des temps et classements
+            allConcurrents.forEach(c => {
+                const officialRuns = c.manches.slice(2).filter(t => t !== null && t !== undefined);
+                c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
+            });
+            const rankedConcurrents = allConcurrents.filter(c => c.meilleurTemps !== null).sort((a, b) => a.meilleurTemps - b.meilleurTemps);
+            const myRankIndex = rankedConcurrents.findIndex(c => c.id === currentCompetitorId);
+            const myRank = myRankIndex !== -1 ? myRankIndex + 1 : null;
+            const leader = rankedConcurrents.length > 0 ? rankedConcurrents[0] : null;
+
+            // Mise à jour des cartes principales
+            document.getElementById('competitor-dashboard-name').textContent = me.nom;
+            document.getElementById('competitor-dashboard-best-time').textContent = formatTime(me.meilleurTemps) || '-';
+            document.getElementById('competitor-dashboard-rank').textContent = myRank || '-';
+
+            if (myRank && leader && me.meilleurTemps && myRank > 1) {
+                const gap = me.meilleurTemps - leader.meilleurTemps;
+                document.getElementById('competitor-dashboard-gap').textContent = formatEcart(gap);
+            } else if (myRank === 1) {
+                 document.getElementById('competitor-dashboard-gap').textContent = '1er';
+            } else {
+                document.getElementById('competitor-dashboard-gap').textContent = '-';
+            }
+
+            // Mise à jour du classement ciblé
+            const focusedRankingBody = document.getElementById('competitor-dashboard-focused-ranking');
+            focusedRankingBody.innerHTML = '';
+            
+            const competitorAbove = myRankIndex > 0 ? rankedConcurrents[myRankIndex - 1] : null;
+            const competitorBelow = myRankIndex < rankedConcurrents.length - 1 ? rankedConcurrents[myRankIndex + 1] : null;
+
+            const renderRankingRow = (competitor, rank, highlightClass = '') => {
+                if (!competitor) return '';
+                let rankDisplay = rank;
+                if (rank === 1) rankDisplay = `🥇 ${rank}`;
+                else if (rank === 2) rankDisplay = `🥈 ${rank}`;
+                else if (rank === 3) rankDisplay = `🥉 ${rank}`;
+                return `<tr class="${highlightClass}">
+                            <td class="p-3 font-bold">${rankDisplay}</td>
+                            <td class="p-3">${competitor.nom}</td>
+                            <td class="p-3 font-mono font-semibold">${formatTime(competitor.meilleurTemps)}</td>
+                        </tr>`;
+            };
+
+            if (myRank) {
+                if (competitorAbove) {
+                    focusedRankingBody.innerHTML += renderRankingRow(competitorAbove, myRank - 1, 'bg-gray-50');
+                }
+                focusedRankingBody.innerHTML += renderRankingRow(me, myRank, 'bg-blue-100 text-blue-800 font-bold');
+                if (competitorBelow) {
+                    focusedRankingBody.innerHTML += renderRankingRow(competitorBelow, myRank + 1, 'bg-gray-50');
+                }
+            } else {
+                 focusedRankingBody.innerHTML = '<tr><td colspan="3" class="p-3 text-center text-gray-500">Vous n\'avez pas encore de temps de course officiel.</td></tr>';
+            }
+
+            // Mise à jour du tableau des temps par manche
+            const timesTableHead = document.getElementById('competitor-dashboard-times-head');
+            const timesTableBody = document.getElementById('competitor-dashboard-times-body');
+            
+            const mancheHeaders = Array.from({ length: chronoData.currentManche }, (_, i) => i < 2 ? `Test ${i + 1}` : `Course ${i - 1}`);
+            timesTableHead.innerHTML = mancheHeaders.map(h => `<th class="p-3 text-left text-xs font-bold uppercase">${h}</th>`).join('');
+            
+            const timesRow = document.createElement('tr');
+            timesRow.innerHTML = me.manches.slice(0, chronoData.currentManche).map(time => `<td class="p-3 font-mono">${formatTime(time) || '-'}</td>`).join('');
+            timesTableBody.innerHTML = '';
+            timesTableBody.appendChild(timesRow);
+        }
 
         function showTutorialModalIfNeeded() {
             if (!localStorage.getItem('tutorialShown')) {
