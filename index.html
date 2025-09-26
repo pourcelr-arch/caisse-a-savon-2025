@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Application gestion course de caisses à savon</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -37,7 +38,7 @@
             background-color: transparent;
         }
         /* Styles pour la modale et l'écran de connexion */
-        .modal, #login-screen, #starting-grid-screen {
+        .modal, #login-screen, #starting-grid-screen, #display-screen {
             position: fixed;
             top: 0;
             left: 0;
@@ -49,7 +50,7 @@
             align-items: center;
             z-index: 1000;
         }
-        .modal-content, .login-content, .starting-grid-content {
+        .modal-content, .login-content, .starting-grid-content, .display-content {
             background-color: #fff;
             padding: 1.5rem;
             border-radius: 1rem;
@@ -58,7 +59,7 @@
             max-width: 800px;
         }
         @media (min-width: 768px) {
-            .modal-content, .login-content, .starting-grid-content {
+            .modal-content, .login-content, .starting-grid-content, .display-content {
                 padding: 2rem;
             }
         }
@@ -170,9 +171,81 @@
                 padding: 2rem;
             }
         }
+        /* Bouton d'urgence */
+        #emergency-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+        /* Alerte Urgence */
+        #emergency-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(220, 38, 38, 0.8); /* red-600 with opacity */
+            z-index: 2000;
+            display: none; /* Initially hidden */
+            animation: flash 1s infinite;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        @keyframes flash {
+            0%, 100% { background-color: rgba(220, 38, 38, 0.8); }
+            50% { background-color: rgba(185, 28, 28, 0.9); }
+        }
+        .modal-content.modal-content-emergency {
+            border: 4px solid #ef4444; /* red-500 */
+            background-color: #fee2e2; /* red-100 */
+        }
+        .modal-content.modal-content-emergency .modal-header h2 {
+            color: #b91c1c; /* red-700 */
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+        .modal-content.modal-content-emergency #confirm-modal-confirm-btn {
+            background-color: #dc2626; /* red-600 */
+            transform: scale(1.05);
+            font-weight: 700;
+        }
+        .modal-content.modal-content-emergency #confirm-modal-confirm-btn:hover {
+            background-color: #b91c1c; /* red-700 */
+        }
     </style>
 </head>
 <body class="p-2 sm:p-6">
+    
+    <!-- BOUTON D'URGENCE -->
+    <button id="emergency-btn" class="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-4 px-4 rounded-full shadow-lg transition duration-200 animate-pulse">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24">
+            <!-- Static Light Rays (White) -->
+            <path d="M12 2V5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M5.6 5.6L7.7 7.7" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M18.4 5.6L16.3 7.7" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M2 12H5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 12H19" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        
+            <!-- Main Beacon Body (Red) -->
+            <path fill="#dc2626" d="M3 17h18v4H3z" />
+            <!-- Light Cover (Lighter Red) -->
+            <path fill="#ef4444" d="M5 9c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2v8H5V9z" />
+            <!-- Glint (Almost White) -->
+            <path fill="#fca5a5" d="M7 11h10v2H7z" />
+        </svg>
+    </button>
+
+    <!-- ALERTE URGENCE -->
+    <div id="emergency-alert">
+        <div class="text-center text-white">
+            <h1 class="text-6xl md:text-9xl font-bold mb-4">URGENCE</h1>
+            <p id="emergency-message" class="text-xl md:text-3xl mb-8">Un incident a été signalé.</p>
+            <button id="stop-emergency-btn" class="bg-white text-red-600 font-bold py-3 px-8 rounded-xl text-lg hover:bg-gray-200">Arrêter l'Alerte</button>
+        </div>
+    </div>
+
 
     <!-- ÉCRAN DE CONNEXION -->
     <div id="login-screen">
@@ -196,7 +269,7 @@
                         <li>Le <strong>Téléphone</strong> ne doit contenir que des chiffres, sans espaces.</li>
                     </ul>
                 </p>
-                <div class="flex justify-center pt-4"><button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Se connecter</button></div>
+                <div class="flex justify-center pt-4"><button type="submit" id="login-submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200" disabled>Chargement des données...</button></div>
             </form>
         </div>
     </div>
@@ -218,6 +291,20 @@
             </div>
         </div>
     </div>
+    
+    <!-- ÉCRAN D'AFFICHAGE PUBLIC -->
+    <div id="display-screen" style="display: none;">
+        <div class="display-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="display-title" class="text-2xl font-bold text-gray-800">Affichage</h2>
+                <button id="close-display-btn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="display-table-container" class="overflow-y-auto max-h-[80vh]">
+                <!-- Contenu de l'affichage généré par JS -->
+            </div>
+        </div>
+    </div>
+
 
     <!-- APPLICATION PRINCIPALE -->
     <div id="main-app" class="max-w-7xl mx-auto" style="display: none;">
@@ -246,12 +333,28 @@
                         Chrono
                     </span>
                 </button>
+                <button id="tab-radar" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap">
+                    <span class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Radar
+                    </span>
+                </button>
                 <button id="tab-podium" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap">
                     <span class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                            <path fill-rule="evenodd" d="M11.293 2.293a1 1 0 011.414 0l.043.043c.293.293.385.737.228 1.114A10.06 10.06 0 0110 5c-1.393 0-2.69.403-3.768 1.114a.999.999 0 01.228-1.114l.043-.043a1 1 0 011.414 0L10 4.414l1.293-1.293zM5 10a5 5 0 1110 0 5 5 0 01-10 0zM10 18a8 8 0 100-16 8 8 0 000 16z" clip-rule="evenodd" />
                         </svg>
                         Podium
+                    </span>
+                </button>
+                 <button id="tab-display" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap">
+                    <span class="flex items-center gap-2">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Affichage
                     </span>
                 </button>
                 <button id="tab-concurrents" class="tab-button py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap">
@@ -273,7 +376,7 @@
                 <button id="tab-admin" class="tab-button py-4 px-1 border-b-2 font-medium text-sm text-red-600 whitespace-nowrap" style="display: none;">
                     <span class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                         Administration
@@ -286,8 +389,16 @@
              <!-- Le contenu de l'onglet Course sera injecté ici par JS -->
         </div>
 
+        <div id="content-radar" class="tab-content" style="display: none;">
+            <!-- Le contenu de l'onglet Radar sera injecté ici par JS -->
+       </div>
+
         <div id="content-podium" class="tab-content" style="display: none;">
             <!-- Le contenu de l'onglet Podium sera injecté ici par JS -->
+        </div>
+        
+        <div id="content-display" class="tab-content" style="display: none;">
+            <!-- Le contenu de l'onglet Affichage sera injecté ici par JS -->
         </div>
 
         <div id="content-concurrents" class="tab-content" style="display: none;">
@@ -388,13 +499,16 @@
             <div class="modal-header justify-center border-b-0 pb-2">
                 <h2 id="time-confirm-concurrent" class="text-3xl font-bold text-white"></h2>
             </div>
+            <p id="time-confirm-manche" class="text-xl text-gray-400 -mt-2 mb-4"></p>
             <div class="my-4">
                 <p id="time-confirm-time" class="text-8xl font-bold text-yellow-400 font-mono"></p>
             </div>
             <div class="space-y-3 text-lg text-gray-300">
+                <p id="time-confirm-personal-best" class="text-xl"></p>
                 <p id="time-confirm-rank" class="text-2xl"></p>
                 <p id="time-confirm-ecart-premier"></p>
                 <p id="time-confirm-ecart-precedent"></p>
+                <p id="time-confirm-speed" class="text-xl"></p>
             </div>
             <div class="flex justify-center mt-6">
                 <button id="close-time-confirm-modal-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl text-lg">OK</button>
@@ -463,6 +577,7 @@
         const competitorDashboardView = document.getElementById('competitor-dashboard-view');
         const loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error');
+        const loginSubmitBtn = document.getElementById('login-submit-btn');
         const logoutBtn = document.getElementById('logout-btn');
         const competitorLogoutBtn = document.getElementById('competitor-logout-btn');
         const userInfo = document.getElementById('user-info');
@@ -472,6 +587,7 @@
         let isSuperAdmin = false;
         let db;
         let appId;
+        let alarmSynth;
 
         // <!-- ============================================================================== -->
         // <!-- ================== ZONE À MODIFIER / HIGHLIGHTED AREA ================== -->
@@ -495,34 +611,12 @@
         db = getFirestore(app);
         const auth = getAuth(app);
 
-        // ===================================
-        // FONCTIONS UTILITAIRES GLOBALES
-        // ===================================
-        function formatTime(timeInMillis) {
-            if (timeInMillis === null || timeInMillis === Infinity || typeof timeInMillis === 'undefined') return "-";
-            const date = new Date(timeInMillis);
-            const minutes = String(date.getUTCMinutes()).padStart(2, "0");
-            const seconds = String(date.getUTCSeconds()).padStart(2, "0");
-            const centiseconds = String(date.getUTCMilliseconds()).padStart(3, "0").slice(0, 2);
-            return `${minutes}:${seconds}:${centiseconds}`;
-        }
-
-        function formatEcart(timeInMillis) {
-            if (timeInMillis === null || timeInMillis === Infinity || typeof timeInMillis === 'undefined' || timeInMillis <= 0) {
-                return "-";
-            }
-            const date = new Date(timeInMillis);
-            const minutes = String(date.getUTCMinutes()).padStart(2, "0");
-            const seconds = String(date.getUTCSeconds()).padStart(2, "0");
-            const centiseconds = String(date.getUTCMilliseconds()).padStart(3, "0").slice(0, 2);
-            return `+${minutes}:${seconds}:${centiseconds}`;
-        }
-
-
         async function authenticateAndStart() {
             try {
                 await signInAnonymously(auth);
                 await loadAccessData();
+                loginSubmitBtn.disabled = false;
+                loginSubmitBtn.textContent = 'Se connecter';
                 checkSavedLogin();
             } catch (error) {
                 console.error("Erreur d'authentification Firebase:", error);
@@ -570,6 +664,7 @@
         function checkSavedLogin() {
             const savedUserStr = localStorage.getItem('currentUser');
             if (savedUserStr) {
+                Tone.start(); // Activation du contexte audio pour les utilisateurs déjà connectés
                 const savedUser = JSON.parse(savedUserStr);
                  const foundUser = utilisateursAutorises.find(user => user.id === savedUser.id);
                   if (foundUser) {
@@ -622,6 +717,11 @@
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         }
 
+        function capitalizeFirstLetter(string) {
+            if (!string) return '';
+            return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+        }
+
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const nomInput = document.getElementById('login-nom').value.trim();
@@ -629,17 +729,18 @@
             const tel = document.getElementById('login-tel').value.replace(/\s/g, '');
 
             const normalizedNomInput = removeAccents(nomInput.toUpperCase());
-            const normalizedPrenomInput = removeAccents(prenomInput.toLowerCase());
+            const normalizedPrenomInput = removeAccents(capitalizeFirstLetter(prenomInput));
             
             const foundUser = utilisateursAutorises.find(user => {
-                const normalizedUserNom = removeAccents(String(user.nom).trim().toUpperCase());
-                const normalizedUserPrenom = removeAccents(String(user.prenom).trim().toLowerCase());
+                const normalizedUserNom = removeAccents(String(user.nom || '').trim().toUpperCase());
+                const normalizedUserPrenom = removeAccents(capitalizeFirstLetter(String(user.prenom || '').trim()));
                 return normalizedUserNom === normalizedNomInput &&
                        normalizedUserPrenom === normalizedPrenomInput &&
-                       String(user.tel).replace(/\s/g, '') === tel;
+                       String(user.tel || '').replace(/\s/g, '') === tel;
             });
 
             if (foundUser) {
+                Tone.start(); // Activation du contexte audio lors de la connexion
                 localStorage.setItem('currentUser', JSON.stringify(foundUser));
 
                 if (foundUser.role === 'Concurrent') {
@@ -692,6 +793,7 @@
             let editingConcurrentId = null;
             let editingUserId = null;
             let modalTimeout = null;
+            let currentDisplayType = null;
             
             const creditsButtonHTML = `<div class="text-center text-gray-400 text-xs my-2"><button class="credits-btn-trigger hover:underline text-blue-500">Application web créée Par</button></div>`;
 
@@ -702,9 +804,18 @@
             let confirmModalConfirmBtn = document.getElementById('confirm-modal-confirm-btn');
             let confirmModalCancelBtn = document.getElementById('confirm-modal-cancel-btn');
 
-            function showConfirmationModal(text, onConfirm, title = "Confirmation Requise") {
+            function showConfirmationModal(text, onConfirm, title = "Confirmation Requise", type = 'default') {
+                const modalContent = confirmModal.querySelector('.modal-content');
+
                 confirmModalTitle.textContent = title;
                 confirmModalText.innerHTML = text;
+                
+                if (type === 'emergency') {
+                    modalContent.classList.add('modal-content-emergency');
+                } else {
+                    modalContent.classList.remove('modal-content-emergency');
+                }
+                
                 confirmModal.style.display = 'flex';
 
                 let newConfirmBtn = confirmModalConfirmBtn.cloneNode(true);
@@ -717,18 +828,22 @@
 
                 confirmModalConfirmBtn.onclick = () => {
                     confirmModal.style.display = 'none';
+                    modalContent.classList.remove('modal-content-emergency');
                     onConfirm();
                 };
                 confirmModalCancelBtn.onclick = () => {
                     confirmModal.style.display = 'none';
+                    modalContent.classList.remove('modal-content-emergency');
                 };
             }
 
             // -- Inject HTML content for tabs --
-            document.getElementById('content-dashboard').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><h2 class="text-xl font-bold text-gray-800 mb-4">Suivi du matériel</h2><div class="mb-8 p-4 bg-yellow-50 rounded-xl shadow-inner border-l-4 border-yellow-400 flex flex-wrap justify-between items-center text-sm md:text-base gap-4"><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Radios:</span><span class="font-bold text-blue-600" id="radios-distribuees">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="radios-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquantes:</span><span class="font-bold text-lg text-red-500" id="radios-manquantes">0</span></div></div><div class="flex-grow"></div><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Sifflets:</span><span class="font-bold text-blue-600" id="sifflets-distribues">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="sifflets-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquants:</span><span class="font-bold text-lg text-red-500" id="sifflets-manquants">0</span></div></div><div class="flex-grow"></div><div class="flex items-center space-x-2 mt-4 md:mt-0"><span class="font-medium text-gray-700">Appareils manquants:</span><span class="font-bold text-2xl text-red-500" id="appareils-manquants">0</span></div></div><h2 class="text-xl font-bold text-gray-800 mb-4">Liste des bénévoles</h2><div class="flex flex-col lg:flex-row justify-between items-center mb-4 gap-4"><div class="flex flex-wrap items-end gap-4"><button id="add-benevole-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">+ Ajouter</button></div><div class="w-full lg:w-auto flex-grow flex flex-col sm:flex-row justify-center items-center gap-2"><input type="text" id="filter-input" placeholder="Rechercher par nom..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full max-w-xs"><select id="filter-fonction" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></select><select id="filter-lieu" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></select></div><div class="flex items-center gap-4 flex-wrap"><div class="flex items-center gap-2" id="missing-info-container"><input type="checkbox" id="filter-missing-info" class="form-checkbox h-4 w-4 text-red-600 rounded"><label for="filter-missing-info" class="text-sm font-medium text-gray-700 select-none">Infos manquantes ❌</label></div><div class="flex items-center gap-2"><input type="checkbox" id="toggleTel" class="form-checkbox h-4 w-4 text-blue-600 rounded"><label for="toggleTel" class="text-sm font-medium text-gray-700 select-none">Masquer Tél.</label></div><div class="flex items-center gap-2"><span id="save-message" class="text-green-600 font-bold"></span><button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-2 md:p-4 rounded-xl overflow-x-auto shadow-inner"><table class="divide-y divide-gray-200" id="benevoles-table"><thead class="bg-gray-200 sticky top-0 z-10"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider rounded-tl-xl">Nom & Prénom</th><th data-column="tel" class="px-4 py-3 text-left text-xs font-bold uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Jours de présence</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Lieu d'affectation 📍</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Fonction 💼</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Matériel (D/R)</th><th data-column="zello" class="px-4 py-3 text-left text-xs font-bold uppercase">Zello 📻</th><th data-column="acces" class="px-4 py-3 text-left text-xs font-bold uppercase">Accès</th><th data-column="action" class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
-            document.getElementById('content-concurrents').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Liste des Concurrents</h2><input type="text" id="filter-concurrents-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-4"><button id="add-concurrent-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">+ Ajouter un Concurrent</button><div><span id="save-concurrents-message" class="text-green-600 font-bold mr-4"></span><button id="save-concurrents-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-2 md:p-4 rounded-xl overflow-x-auto shadow-inner"><table id="concurrents-admin-table" class="divide-y divide-gray-200"><thead class="bg-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tl-xl">Concurrent</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Enfant</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Dossier Inscription</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Assurance</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Paiement Cotisation</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Équipements Sécurité</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Contrôle Tech.</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="concurrents-admin-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
+            document.getElementById('content-dashboard').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><h2 class="text-xl font-bold text-gray-800 mb-4">Suivi du matériel</h2><div id="material-summary-container" class="mb-8 p-4 bg-yellow-50 rounded-xl shadow-inner border-l-4 border-yellow-400 flex flex-wrap justify-between items-center text-sm md:text-base gap-4"><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Radios:</span><span class="font-bold text-blue-600" id="radios-distribuees">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="radios-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquantes:</span><span class="font-bold text-lg text-red-500" id="radios-manquantes">0</span></div></div><div class="flex-grow"></div><div class="flex flex-col items-center"><div class="flex items-center space-x-2"><span class="font-medium text-gray-700">Sifflets:</span><span class="font-bold text-blue-600" id="sifflets-distribues">0</span><span class="text-gray-500">D</span><span class="font-bold text-green-600" id="sifflets-restituees">0</span><span class="text-gray-500">R</span></div><div class="flex items-center space-x-2 mt-1"><span class="font-medium text-red-500">Manquants:</span><span class="font-bold text-lg text-red-500" id="sifflets-manquants">0</span></div></div><div class="flex-grow"></div><div class="flex items-center space-x-2 mt-4 md:mt-0"><span class="font-medium text-gray-700">Appareils manquants:</span><span class="font-bold text-2xl text-red-500" id="appareils-manquants">0</span></div></div><h2 class="text-xl font-bold text-gray-800 mb-4">Liste des bénévoles</h2><div class="mb-4"><label for="filter-input" class="block text-sm font-medium text-gray-700 mb-1">Recherche par Nom ou Prénom</label><input type="text" id="filter-input" placeholder="Rechercher par Nom ou Prénom..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full max-w-md"></div><div class="flex flex-col lg:flex-row justify-between items-center mb-4 gap-4"><div class="flex flex-wrap items-end gap-4"><button id="add-benevole-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">+ Ajouter</button></div><div class="w-full lg:w-auto flex-grow flex flex-col sm:flex-row justify-end items-center gap-2"><select id="filter-fonction" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></select><select id="filter-lieu" class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></select></div><div class="flex items-center gap-4 flex-wrap"><div class="flex items-center gap-2" id="missing-info-container"><input type="checkbox" id="filter-missing-info" class="form-checkbox h-4 w-4 text-red-600 rounded"><label for="filter-missing-info" class="text-sm font-medium text-gray-700 select-none">Infos manquantes ❌</label></div><div class="flex items-center gap-2"><input type="checkbox" id="toggleTel" class="form-checkbox h-4 w-4 text-blue-600 rounded"><label for="toggleTel" class="text-sm font-medium text-gray-700 select-none">Masquer Tél.</label></div><div class="flex items-center gap-2"><span id="save-message" class="text-green-600 font-bold"></span><button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition duration-200">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-2 md:p-4 rounded-xl overflow-x-auto shadow-inner"><table class="divide-y divide-gray-200" id="benevoles-table"><thead class="bg-gray-200 sticky top-0 z-10"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider rounded-tl-xl">Nom & Prénom</th><th data-column="tel" class="px-4 py-3 text-left text-xs font-bold uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Jours de présence</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Lieu d'affectation 📍</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Fonction 💼</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Matériel (D/R)</th><th data-column="zello" class="px-4 py-3 text-left text-xs font-bold uppercase">Zello 📻</th><th data-column="acces" class="px-4 py-3 text-left text-xs font-bold uppercase">Accès</th><th data-column="action" class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
+            document.getElementById('content-concurrents').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Liste des Concurrents</h2><input type="text" id="filter-concurrents-input" placeholder="Rechercher par Nom ou Prénom..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-4"><button id="add-concurrent-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">+ Ajouter un Concurrent</button><div><span id="save-concurrents-message" class="text-green-600 font-bold mr-4"></span><button id="save-concurrents-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition duration-200 text-sm">Sauvegarder</button></div></div></div><div class="bg-gray-100 p-2 md:p-4 rounded-xl overflow-x-auto shadow-inner"><table id="concurrents-admin-table" class="divide-y divide-gray-200"><thead class="bg-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tl-xl">Concurrent</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Enfant</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Dossier Inscription</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Assurance</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Paiement Cotisation</th><th class="px-4 py-3 text-center text-xs font-bold uppercase">Équipements Sécurité</th><th class="px-4 py-3 text-left text-xs font-bold uppercase">Contrôle Tech.</th><th class="px-4 py-3 text-left text-xs font-bold uppercase rounded-tr-xl">Action</th></tr></thead><tbody id="concurrents-admin-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
             document.getElementById('content-race').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><div id="chrono-container" class="mb-6 p-4 md:p-6 bg-gray-50 rounded-2xl shadow-inner"><div class="text-center mb-4"><h2 id="current-manche-display" class="text-3xl font-bold text-blue-600"></h2></div><div class="max-w-md mx-auto"><div class="mb-4"><label for="chrono-search-input" class="block text-sm font-medium text-gray-700 mb-1">Concurrent au départ (par nom)</label><input type="text" id="chrono-search-input" list="concurrents-datalist" placeholder="Rechercher..." class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"><datalist id="concurrents-datalist"></datalist></div><div id="selected-concurrent-display" class="text-center font-bold text-xl text-gray-700 h-8 mb-4"></div><div id="chrono-display" class="text-5xl font-bold text-center text-blue-600 bg-white p-4 rounded-xl mb-4 shadow">00:00:00</div><div class="grid grid-cols-2 gap-3 mt-auto"><button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Démarrer</button><button id="stop-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200" disabled>Arrêter et Enregistrer</button><button id="reset-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200 col-span-2">Réinitialiser</button></div></div></div><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-xl font-bold text-gray-800">Classement de la Course</h2><input type="text" id="filter-race-input" placeholder="Rechercher un concurrent..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"><div class="flex items-center gap-2 flex-wrap justify-center sm:justify-end"><button id="reset-race-btn" class="bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Réinitialiser Course</button><button id="new-heat-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition duration-200">Manche Suivante</button></div></div><div id="race-table-container" class="bg-gray-100 p-2 md:p-4 rounded-xl shadow-inner overflow-x-auto"><table id="race-table" class="divide-y divide-gray-200"><thead id="race-table-head" class="bg-gray-200 sticky top-0"></thead><tbody id="race-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>` + creditsButtonHTML;
             document.getElementById('content-podium').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Résultats & Podiums</h2><div class="flex flex-col sm:flex-row justify-center items-center gap-4 flex-wrap"><button id="current-heat-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition duration-200 text-lg">Course en cours</button><button id="previous-heat-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-xl transition duration-200 text-lg">Temps Course Précédente</button><button id="podium-fastest-lap-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-xl transition duration-200 text-lg">Podium Descente Rapide</button><button id="podium-grand-prix-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl transition duration-200 text-lg">Podium Grand Prix</button></div></div>` + creditsButtonHTML;
+            document.getElementById('content-radar').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><div class="max-w-md mx-auto text-center"><h2 class="text-2xl font-bold text-gray-800 mb-4">Saisie Radar</h2><div id="radar-concurrent-display" class="mb-4 text-xl font-semibold text-blue-600 h-8">Aucun concurrent en piste</div><div class="flex items-center justify-center gap-2 mb-4"><input type="number" id="radar-speed-input" placeholder="Vitesse" class="text-5xl font-bold text-center w-48 p-2 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"><span class="text-3xl font-bold text-gray-500">km/h</span></div><button id="save-speed-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition duration-200">Enregistrer Vitesse</button></div></div>` + creditsButtonHTML;
+            document.getElementById('content-display').innerHTML = creditsButtonHTML + `<div class="bg-white shadow-xl rounded-2xl p-4 md:p-6"><h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Panneau de Contrôle Affichage</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div class="competitor-card text-center"><h3 class="text-lg font-bold mb-2">Affichage en Direct</h3><p class="text-sm text-gray-600 mb-4">Ouvre une fenêtre qui affiche le résumé des temps dès qu'une course est terminée.</p><button id="display-live-recap-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl">Lancer l'Affichage Live</button></div><div class="competitor-card text-center"><h3 class="text-lg font-bold mb-2">Podium Vitesse</h3><p class="text-sm text-gray-600 mb-4">Ouvre le podium de la descente la plus rapide dans une nouvelle fenêtre.</p><button id="display-podium-speed-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl">Afficher le Podium Vitesse</button></div><div class="competitor-card text-center"><h3 class="text-lg font-bold mb-2">Podium Grand Prix</h3><p class="text-sm text-gray-600 mb-4">Ouvre le podium du Grand Prix (temps cumulés) dans une nouvelle fenêtre.</p><button id="display-podium-gp-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl">Afficher le Podium GP</button></div></div></div>` + creditsButtonHTML;
             document.getElementById('content-admin').innerHTML = creditsButtonHTML + `
                 <div class="bg-white shadow-xl rounded-2xl p-4 md:p-6">
                     <div class="mb-6 border-b border-gray-200">
@@ -739,7 +854,7 @@
                     </div>
 
                     <div id="admin-access-section">
-                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><div><h2 class="text-xl font-bold text-gray-800">Gérer les utilisateurs autorisés</h2><p class="text-gray-600 text-sm">Seuls les utilisateurs listés ici peuvent se connecter.</p></div><input type="text" id="filter-access-input" placeholder="Rechercher un utilisateur..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></div><form id="add-user-form" class="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-wrap items-end gap-4"><div class="flex-grow min-w-[150px]"><label for="user-nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="user-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="user-prenom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" id="user-tel" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-role" class="block text-sm font-medium text-gray-700">Rôle</label><select id="user-role" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"><option value="Super Admin">Super Admin</option><option value="Organisation">Organisation</option><option value="Responsable Radio">Responsable Radio</option><option value="MAIRE">MAIRE</option><option value="Chrono Départ">Chrono Départ</option><option value="Chrono Arrivée">Chrono Arrivée</option><option value="Bénévole">Bénévole</option><option value="Concurrent">Concurrent</option></select></div><div id="user-competitor-link-container" class="flex-grow min-w-[150px]" style="display:none;"><label for="user-competitor-select" class="block text-sm font-medium text-gray-700">Concurrent Lié</label><select id="user-competitor-select" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></select></div><div class="flex items-center gap-2"><button type="submit" id="add-user-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button><button type="button" id="cancel-edit-user-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl" style="display:none;">Annuler</button></div></form><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-100"><tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Nom Prénom</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Rôle</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th></tr></thead><tbody id="access-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div>
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><div><h2 class="text-xl font-bold text-gray-800">Gérer les utilisateurs autorisés</h2><p class="text-gray-600 text-sm">Seuls les utilisateurs listés ici peuvent se connecter.</p></div><input type="text" id="filter-access-input" placeholder="Rechercher par Nom ou Prénom..." class="px-3 py-2 border border-gray-300 rounded-xl shadow-sm w-full sm:w-auto"></div><form id="add-user-form" class="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-wrap items-end gap-4"><div class="flex-grow min-w-[150px]"><label for="user-nom" class="block text-sm font-medium text-gray-700">Nom</label><input type="text" id="user-nom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-prenom" class="block text-sm font-medium text-gray-700">Prénom</label><input type="text" id="user-prenom" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-tel" class="block text-sm font-medium text-gray-700">Téléphone</label><input type="tel" id="user-tel" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></div><div class="flex-grow min-w-[150px]"><label for="user-role" class="block text-sm font-medium text-gray-700">Rôle</label><select id="user-role" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></select></div><div id="user-competitor-link-container" class="flex-grow min-w-[150px]" style="display:none;"><label for="user-competitor-select" class="block text-sm font-medium text-gray-700">Concurrent Lié</label><select id="user-competitor-select" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></select></div><div class="flex items-center gap-2"><button type="submit" id="add-user-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">+ Ajouter</button><button type="button" id="cancel-edit-user-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl" style="display:none;">Annuler</button></div></form><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-100"><tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Nom Prénom</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Téléphone</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Rôle</th><th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th></tr></thead><tbody id="access-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div>
                     </div>
 
                     <div id="admin-reset-section" style="display: none;">
@@ -757,12 +872,215 @@
             const podiumFastestLapBtn = document.getElementById('podium-fastest-lap-btn');
             const podiumGrandPrixBtn = document.getElementById('podium-grand-prix-btn');
             const currentHeatBtn = document.getElementById('current-heat-btn');
+            const saveSpeedBtn = document.getElementById('save-speed-btn');
+
+            // Emergency Button Logic
+            const emergencyBtn = document.getElementById('emergency-btn');
+            const stopEmergencyBtn = document.getElementById('stop-emergency-btn');
+            const emergencyAlert = document.getElementById('emergency-alert');
+            const emergencyDocRef = doc(db, `artifacts/${appId}/public/data/raceState`, 'emergency');
+
+            emergencyBtn.addEventListener('click', () => {
+                const modalTitle = "🚨 CONFIRMER L'INCIDENT DE COURSE 🚨";
+                const modalText = "Vous êtes sur le point de signaler un <strong>INCIDENT DE COURSE</strong>. Une alerte sonore et visuelle sera envoyée à <strong>TOUS</strong> les membres de l'organisation.<br><br>N'utilisez cette fonction qu'en cas de nécessité avérée.<br><br><strong class='text-lg'>Confirmez-vous l'envoi de l'alerte ?</strong>";
+                
+                showConfirmationModal(
+                    modalText,
+                    async () => {
+                        await setDoc(emergencyDocRef, { 
+                            active: true, 
+                            triggeredBy: `${currentUser.prenom} ${currentUser.nom}`,
+                            triggeredByTel: currentUser.tel || null
+                        });
+                    },
+                    modalTitle,
+                    'emergency'
+                );
+            });
+
+            stopEmergencyBtn.addEventListener('click', async () => {
+                await setDoc(emergencyDocRef, { active: false, triggeredBy: null });
+            });
+            
+            onSnapshot(emergencyDocRef, (snapshot) => {
+                const emergencyData = snapshot.data();
+                if (emergencyData && emergencyData.active) {
+                    emergencyAlert.querySelector('h1').textContent = '⚠️ INCIDENT COURSE ⚠️';
+                    emergencyAlert.style.display = 'flex';
+                    const triggeredByName = emergencyData.triggeredBy || 'un utilisateur';
+                    
+                    // Trouver le lieu du bénévole qui a déclenché l'alerte (recherche plus fiable par N° de tél)
+                    let triggeringUser = null;
+                    if (emergencyData.triggeredByTel) {
+                        triggeringUser = data.find(user => String(user.tel || '').replace(/\s/g, '') === String(emergencyData.triggeredByTel).replace(/\s/g, ''));
+                    }
+                    const locationInfo = triggeringUser ? `<strong>(Lieu : ${triggeringUser.lieu})</strong>` : '';
+
+                    document.getElementById('emergency-message').innerHTML = `Un incident de course a été signalé par <strong>${triggeredByName}</strong>. ${locationInfo}<br>Restez vigilants et attendez les instructions.`;
+
+                    if (!alarmSynth) {
+                        alarmSynth = new Tone.Synth({
+                            oscillator: { type: 'sawtooth' },
+                            envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                        }).toDestination();
+                    }
+                    Tone.Transport.stop();
+                    Tone.Transport.clear();
+                    // Son d'alarme plus intense
+                    new Tone.Loop(time => {
+                        alarmSynth.triggerAttackRelease('A5', '16n', time);
+                        alarmSynth.triggerAttackRelease('E5', '16n', time + Tone.Time('16n').toSeconds());
+                    }, '8n').start(0);
+
+                    Tone.Transport.start();
+                } else {
+                    emergencyAlert.style.display = 'none';
+                    if (Tone.Transport.state === 'started') {
+                        Tone.Transport.stop();
+                        Tone.Transport.clear();
+                    }
+                }
+            });
+
+            // Display Logic
+            const displayLiveRecapBtn = document.getElementById('display-live-recap-btn');
+            const displayPodiumSpeedBtn = document.getElementById('display-podium-speed-btn');
+            const displayPodiumGpBtn = document.getElementById('display-podium-gp-btn');
+            const displayScreen = document.getElementById('display-screen');
+            const closeDisplayBtn = document.getElementById('close-display-btn');
+            
+            function showDisplayScreen(type) {
+                currentDisplayType = type;
+                mainApp.style.display = 'none';
+                displayScreen.style.display = 'flex';
+                renderDisplayContent(type);
+            }
+
+            async function renderDisplayContent(type, data = null) {
+                const displayTitle = document.getElementById('display-title');
+                const displayContainer = document.getElementById('display-table-container');
+                displayContainer.innerHTML = ''; // Clear previous content
+
+                let contentHTML = '<table class="min-w-full divide-y divide-gray-200">';
+                
+                if (type === 'live') {
+                    displayTitle.textContent = "Affichage en Direct - Dernier Temps";
+                    const chronoSnapshot = await getDoc(chronoDocRef);
+                    const chronoData = chronoSnapshot.data();
+                    const lastTime = data ? data.lastRecordedTime : chronoData.lastRecordedTime;
+
+                    if (lastTime) {
+                         contentHTML += `
+                            <tbody class="bg-white text-center text-2xl">
+                                <tr><td class="p-4 font-bold text-4xl text-blue-600" colspan="2">${lastTime.nom}</td></tr>
+                                <tr><td class="p-4 font-mono text-7xl font-bold" colspan="2">${formatTime(lastTime.time)}</td></tr>
+                                ${lastTime.rank ? `<tr><td class="p-2">Classement</td><td class="p-2 font-bold">${lastTime.rank}e</td></tr>` : ''}
+                                ${lastTime.ecartPremier ? `<tr><td class="p-2">Écart 1er</td><td class="p-2 font-bold text-red-500">${formatEcart(lastTime.ecartPremier)}</td></tr>` : ''}
+                                ${lastTime.speed ? `<tr><td class="p-2">Vitesse</td><td class="p-2 font-bold">${lastTime.speed} km/h</td></tr>` : ''}
+                            </tbody>
+                        `;
+                    } else {
+                        contentHTML += '<tbody><tr><td class="p-8 text-center text-gray-500">En attente du prochain temps...</td></tr></tbody>';
+                    }
+
+                } else if (type === 'podium-speed') {
+                    displayTitle.textContent = "Podium - Descente la plus Rapide";
+                    contentHTML += `<thead class="bg-gray-200"><tr>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Pos.</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Meilleur Temps</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Écart 1er</th>
+                    </tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
+                    
+                    const ranked = [...concurrents].filter(c => c.meilleurTemps !== null).sort((a,b) => a.meilleurTemps - b.meilleurTemps);
+                    const tempsPremier = ranked.length > 0 ? ranked[0].meilleurTemps : null;
+
+                    ranked.forEach((c, i) => {
+                        const ecartPremier = tempsPremier !== null ? c.meilleurTemps - tempsPremier : null;
+                        let classementHTML = i + 1;
+                        if (classementHTML === 1) classementHTML = `🥇 ${classementHTML}`;
+                        else if (classementHTML === 2) classementHTML = `🥈 ${classementHTML}`;
+                        else if (classementHTML === 3) classementHTML = `🥉 ${classementHTML}`;
+
+                        contentHTML += `<tr>
+                            <td class="px-4 py-3 text-sm font-bold">${classementHTML}</td>
+                            <td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.meilleurTemps)}</td>
+                            <td class="px-4 py-3 text-sm text-red-500">${formatEcart(ecartPremier)}</td>
+                        </tr>`;
+                    });
+                     contentHTML += `</tbody>`;
+
+                } else if (type === 'podium-gp') {
+                     displayTitle.textContent = "Podium - Grand Prix";
+                     contentHTML += `<thead class="bg-gray-200"><tr>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Pos.</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Temps Total</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Écart 1er</th>
+                    </tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
+                    
+                    concurrents.forEach(c => {
+                        const officialRuns = c.manches.slice(2).filter(m => m && m.time !== null).map(m => m.time);
+                        c.completedRuns = officialRuns.length;
+                        c.tempsTotal = officialRuns.length > 0 ? officialRuns.reduce((a, b) => a + b, 0) : null;
+                    });
+                    
+                    const maxCourses = currentManche > 2 ? currentManche - 2 : 0;
+                    
+                    let ranked = [];
+                    if (maxCourses > 0) {
+                        ranked = concurrents.filter(c => c.completedRuns === maxCourses && c.tempsTotal !== null).sort((a,b) => a.tempsTotal - b.tempsTotal);
+                    }
+
+                    const tempsPremier = ranked.length > 0 ? ranked[0].tempsTotal : null;
+
+                    ranked.forEach((c, i) => {
+                        const ecartPremier = tempsPremier !== null ? c.tempsTotal - tempsPremier : null;
+                        let classementHTML = i + 1;
+                        if (classementHTML === 1) classementHTML = `🥇 ${classementHTML}`;
+                        else if (classementHTML === 2) classementHTML = `🥈 ${classementHTML}`;
+                        else if (classementHTML === 3) classementHTML = `🥉 ${classementHTML}`;
+
+                        contentHTML += `<tr>
+                            <td class="px-4 py-3 text-sm font-bold">${classementHTML}</td>
+                            <td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.tempsTotal)}</td>
+                            <td class="px-4 py-3 text-sm text-red-500">${formatEcart(ecartPremier)}</td>
+                        </tr>`;
+                    });
+                    contentHTML += `</tbody>`;
+                }
+                
+                contentHTML += '</table>';
+                displayContainer.innerHTML = contentHTML;
+            }
+
+            displayLiveRecapBtn.addEventListener('click', () => showDisplayScreen('live'));
+            displayPodiumSpeedBtn.addEventListener('click', () => showDisplayScreen('podium-speed'));
+            displayPodiumGpBtn.addEventListener('click', () => showDisplayScreen('podium-gp'));
+            closeDisplayBtn.addEventListener('click', () => {
+                displayScreen.style.display = 'none';
+                mainApp.style.display = 'block';
+                currentDisplayType = null;
+            });
+
+
+            // Radar Logic
+            saveSpeedBtn.addEventListener('click', async () => {
+                const speed = document.getElementById('radar-speed-input').value;
+                if (speed) {
+                    await updateDoc(chronoDocRef, { currentSpeedKmh: parseFloat(speed) });
+                    alert(`Vitesse de ${speed} km/h enregistrée.`);
+                    document.getElementById('radar-speed-input').value = '';
+                }
+            });
             
             // =========================
             // BÉNÉVOLES LOGIC
             // =========================
             let data = [];
-            const rolesOptions = ["Aucun accès", "Super Admin", "Organisation", "Responsable Radio", "MAIRE", "Chrono Départ", "Chrono Arrivée", "Bénévole", "Concurrent"];
+            const rolesOptions = ["Aucun accès", "Super Admin", "Organisation", "Responsable Radio", "MAIRE", "Chrono Départ", "Chrono Arrivée", "Saisie Radar", "Commissaire de Course", "Bénévole", "Concurrent"];
             const joursOptions=["Samedi","Dimanche","Samedi/Dimanche","Non renseigné"],fonctionOptions=["Organisateur 🧑‍💼","Accueil / Inscriptions 📝","Contrôle Technique 🛠️","Sécurité Piste 🚧","Commissaire de Course 🚦","Chronométrage ⏱️","Logistique 🚚","Relations Compétiteurs 👋","Espace Convivialité -Bénévoles 🧑‍🤝‍🧑","Remontée des Caisses 🚜","Speaker 📢","Photographe 📸","Responsable Radio 📻","Pôle de Départ 🏁","Pôle d'Arrivée ✅","Podium 🏆","Secrétariat 📋","Responsable Expo voiture 🚗","Soutien opérationnel","À définir"],lieuOptions=["Mobile sur l'ensemble du parcours","Parc Concurrents","Piste de Course","Grille de Départ","Contrôle Technique","Espace Bénévoles","Rue de l'étang","Rue des Ajoncs","Rue Maréchal Leclerc","Rue Général De Gaulle","Rue Général Déborde","Rue des Écoles","Rue Madame Gadot","Rue Saint-Joseph","Rue François Le Bail","Ligne d'arrivée","Garage Motrio", "Mur de Carton", "À définir"];
             
             const benevolesCollection = collection(db, `artifacts/${appId}/public/data/benevoles`);
@@ -1115,7 +1433,7 @@
                 concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderAllConcurrentsView();
                 populateConcurrentsDatalist();
-                populateCompetitorsForAccessForm(); // Mettre à jour la liste dans le formulaire admin
+                populateCompetitorsForAccessForm();
             });
 
             async function saveConcurrentsData() {
@@ -1247,6 +1565,26 @@
                 }));
             }
 
+            function formatTime(timeInMillis) {
+                if (timeInMillis === null || timeInMillis === Infinity || typeof timeInMillis === 'undefined') return "-";
+                const date = new Date(timeInMillis);
+                const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+                const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+                const centiseconds = String(date.getUTCMilliseconds()).padStart(3, "0").slice(0, 2);
+                return `${minutes}:${seconds}:${centiseconds}`;
+            }
+
+            function formatEcart(timeInMillis) {
+                if (timeInMillis === null || timeInMillis === Infinity || typeof timeInMillis === 'undefined' || timeInMillis <= 0) {
+                    return "-";
+                }
+                const date = new Date(timeInMillis);
+                const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+                const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+                const centiseconds = String(date.getUTCMilliseconds()).padStart(3, "0").slice(0, 2);
+                return `+${minutes}:${seconds}:${centiseconds}`;
+            }
+
             function parseTimeToMillis(timeStr) {
                 if (!timeStr || typeof timeStr !== 'string' || timeStr === '-') return null;
                 const parts = timeStr.split(':');
@@ -1292,7 +1630,8 @@
                     running: true,
                     startTime: new Date().getTime(),
                     currentConcurrent: selectedConcurrentId,
-                    selectedConcurrent: null
+                    selectedConcurrent: null,
+                    currentSpeedKmh: null // Reset speed for the new run
                 });
             }
 
@@ -1306,22 +1645,29 @@
                 const difference = endTime - startTime;
                 const concurrentId = chronoData.currentConcurrent;
                 const concurrent = concurrents.find(c => c.id == concurrentId);
+                const speed = chronoData.currentSpeedKmh || null;
 
                 if (concurrent) {
+                    // Calculer l'ancien meilleur temps perso (uniquement pour les manches de course)
+                    const oldOfficialRuns = concurrent.manches.slice(2).filter(m => m && m.time !== null).map(m => m.time);
+                    const oldBestTime = oldOfficialRuns.length > 0 ? Math.min(...oldOfficialRuns) : null;
+
                     const manches = concurrent.manches;
-                    manches[currentManche - 1] = difference;
+                    manches[currentManche - 1] = { time: difference, speed: speed };
                     await updateDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, concurrent.id), { manches: manches });
                     
-                    const allConcurrentsWithNewTime = JSON.parse(JSON.stringify(concurrents)); // Deep copy to avoid mutation
+                    const allConcurrentsWithNewTime = JSON.parse(JSON.stringify(concurrents)); 
                     const concurrentToUpdate = allConcurrentsWithNewTime.find(c => c.id === concurrent.id);
                     if (concurrentToUpdate) {
                         concurrentToUpdate.manches = manches;
                     }
 
                     allConcurrentsWithNewTime.forEach(c => {
-                        const officialRuns = c.manches.slice(2).filter(t => t !== null && t !== undefined);
+                        const officialRuns = c.manches.slice(2).filter(m => m && m.time !== null).map(m => m.time);
                         c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
                     });
+
+                    const newBestTime = concurrentToUpdate ? concurrentToUpdate.meilleurTemps : null;
 
                     const ranked = allConcurrentsWithNewTime.filter(c => c.meilleurTemps !== null).sort((a, b) => a.meilleurTemps - b.meilleurTemps);
                     const rankIndex = ranked.findIndex(c => c.id === concurrent.id);
@@ -1341,15 +1687,16 @@
                     }
 
                     let isNewBestRunEver = false;
-                    const allRuns = allConcurrentsWithNewTime.flatMap(c => c.manches).filter(t => t !== null);
+                    const allRuns = allConcurrentsWithNewTime.flatMap(c => c.manches.filter(m => m && m.time !== null).map(m => m.time));
+
                     if (allRuns.length > 0) {
                         const bestRunEver = Math.min(...allRuns);
-                        if (difference === bestRunEver) {
+                        if (difference === bestRunEver && currentManche > 2) { // Only for official runs
                             isNewBestRunEver = true;
                         }
                     }
 
-
+                    // Mettre à jour la base de données
                     await updateDoc(chronoDocRef, {
                         running: false,
                         startTime: null,
@@ -1358,6 +1705,7 @@
                         lastRecordedTime: {
                             nom: concurrent.nom,
                             time: difference,
+                            speed: speed,
                             rank: rank,
                             ecartPremier: ecartPremier,
                             ecartPrecedent: ecartPrecedent,
@@ -1365,13 +1713,77 @@
                             isNewBestRunEver: isNewBestRunEver
                         }
                     });
+
+                    // Afficher la modale de confirmation
+                    document.getElementById('time-confirm-concurrent').textContent = concurrent.nom;
+                    
+                    const mancheText = currentManche <= 2 ? `Descente test ${currentManche}` : `Course ${currentManche - 2}`;
+                    document.getElementById('time-confirm-manche').textContent = mancheText;
+
+                    document.getElementById('time-confirm-time').textContent = formatTime(difference);
+
+                    const personalBestEl = document.getElementById('time-confirm-personal-best');
+                    if (currentManche > 2) { // Afficher l'info "record perso" uniquement pour les manches de course
+                        personalBestEl.style.display = 'block';
+                        if (newBestTime === difference) {
+                            personalBestEl.innerHTML = `🏆 <span class="text-green-400">Nouveau record personnel !</span>`;
+                        } else if (oldBestTime) {
+                            const diffWithBest = difference - oldBestTime;
+                             personalBestEl.innerHTML = `Record perso : ${formatTime(oldBestTime)} (${formatEcart(diffWithBest)})`;
+                        } else {
+                            personalBestEl.innerHTML = `Premier temps de course officiel.`;
+                        }
+                    } else {
+                        personalBestEl.style.display = 'none';
+                    }
+
+                    // Phrase pour la vitesse
+                    const speedEl = document.getElementById('time-confirm-speed');
+                    if (speed) {
+                        speedEl.innerHTML = `Vous avez été flashé à : <strong class="text-white font-bold">${speed} km/h</strong>`;
+                        speedEl.style.display = 'block';
+                    } else {
+                        speedEl.style.display = 'none';
+                    }
+
+                    // Phrase pour la position
+                    const rankEl = document.getElementById('time-confirm-rank');
+                    if (rank) {
+                        rankEl.textContent = `Position dans la course : ${rank}e`;
+                        rankEl.style.display = 'block';
+                    } else {
+                        rankEl.style.display = 'none';
+                    }
+                    
+                    // Phrase pour l'écart avec le premier
+                    const ecartPremierEl = document.getElementById('time-confirm-ecart-premier');
+                    if (ecartPremier) {
+                        ecartPremierEl.textContent = `Écart avec le premier : ${formatEcart(ecartPremier)}`;
+                         ecartPremierEl.style.display = 'block';
+                    } else {
+                         ecartPremierEl.style.display = 'none';
+                    }
+                    
+                    // Phrase pour l'écart avec le précédent
+                    const ecartPrecedentEl = document.getElementById('time-confirm-ecart-precedent');
+                    if (ecartPrecedent && nomPrecedent) {
+                        ecartPrecedentEl.innerHTML = `Précédé par <strong>${nomPrecedent}</strong> (écart : ${formatEcart(ecartPrecedent)})`;
+                         ecartPrecedentEl.style.display = 'block';
+                    } else {
+                         ecartPrecedentEl.style.display = 'none';
+                    }
+
+                    document.getElementById('new-record-banner').style.display = isNewBestRunEver ? 'block' : 'none';
+                    
+                    timeConfirmationModal.style.display = 'flex';
+
                 } else {
                     await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null, selectedConcurrent: null });
                 }
             }
 
             async function resetChrono() {
-                await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null, selectedConcurrent: null });
+                await updateDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null, selectedConcurrent: null, currentSpeedKmh: null });
             }
 
             async function startNewHeat() {
@@ -1407,6 +1819,7 @@
             function renderRaceTable() {
                 const tableHead = document.getElementById('race-table-head');
                 const tableBody = document.getElementById('race-table-body');
+                if (!tableHead || !tableBody) return;
                 tableHead.innerHTML = '';
                 tableBody.innerHTML = '';
 
@@ -1414,7 +1827,7 @@
                 let dataToRender = concurrents.filter(c => c.nom.toLowerCase().includes(filterValue));
 
                 dataToRender.forEach(c => {
-                    const officialRuns = c.manches.slice(2).filter(t => t !== null && t !== undefined);
+                    const officialRuns = c.manches.slice(2).filter(m => m && m.time !== null).map(m => m.time);
                     c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
                 });
 
@@ -1447,1063 +1860,611 @@
                     if (classement === 1) classementHTML = `🥇 ${classement}`;
                     else if (classement === 2) classementHTML = `🥈 ${classement}`;
                     else if (classement === 3) classementHTML = `🥉 ${classement}`;
-                    
+
                     const ecartPremier = tempsPremier !== null && concurrent.meilleurTemps !== null ? concurrent.meilleurTemps - tempsPremier : null;
 
                     let rowHTML = `
-                        <td class="px-4 py-3 text-base font-bold text-center">${classementHTML}</td>
-                        <td class="px-4 py-3 text-sm">${concurrent.nom} ${concurrent.isChild ? '🧒' : ''}</td>
+                        <td class="px-4 py-3 text-sm font-bold text-center">${classementHTML}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="font-semibold">${concurrent.nom}</span>
+                            ${concurrent.isChild ? '<span title="Concurrent Enfant">🧒</span>' : ''}
+                        </td>
                     `;
                     
                     for (let i = 0; i < currentManche; i++) {
-                        rowHTML += `<td class="px-4 py-3 text-sm"><input type="text" class="time-input" value="${formatTime(concurrent.manches[i])}" data-concurrent-id="${concurrent.id}" data-manche-index="${i}" ${canEditTimes ? '' : 'disabled'}></td>`;
+                        const mancheData = concurrent.manches[i];
+                        const timeValue = mancheData ? formatTime(mancheData.time) : "-";
+                        const speedValue = mancheData && mancheData.speed ? `<span class="block text-xs text-gray-500 font-normal">${mancheData.speed} km/h</span>` : '';
+                        rowHTML += `<td class="px-4 py-3 text-sm text-center">
+                                        <input type="text" class="time-input text-center" value="${timeValue}" data-concurrent-id="${concurrent.id}" data-manche-index="${i}" ${canEditTimes ? '' : 'disabled'}>
+                                        ${speedValue}
+                                    </td>`;
                     }
                     
                     rowHTML += `
                         <td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(concurrent.meilleurTemps)}</td>
-                        <td class="px-4 py-3 text-sm text-red-500 font-semibold">${formatEcart(ecartPremier)}</td>
+                        <td class="px-4 py-3 text-sm text-red-500">${formatEcart(ecartPremier)}</td>
                     `;
+                    
                     row.innerHTML = rowHTML;
+
+                    row.querySelectorAll('.time-input').forEach(input => {
+                        input.addEventListener('change', (e) => {
+                            const newTimeMillis = parseTimeToMillis(e.target.value);
+                            const concurrentId = e.target.dataset.concurrentId;
+                            const mancheIndex = parseInt(e.target.dataset.mancheIndex, 10);
+                            
+                            const targetConcurrent = concurrents.find(c => c.id === concurrentId);
+                            if (targetConcurrent) {
+                                // Find the original speed value for that run, if it exists
+                                const originalSpeed = targetConcurrent.manches[mancheIndex] ? targetConcurrent.manches[mancheIndex].speed : null;
+                                targetConcurrent.manches[mancheIndex] = { time: newTimeMillis, speed: originalSpeed };
+                                saveConcurrentsData().then(renderRaceTable);
+                            }
+                        });
+                    });
                 });
 
-                currentMancheDisplay.textContent = currentManche <= 2 ? `Descente test ${currentManche}` : `Course ${currentManche - 2}`;
-
-                setTimeout(() => {
-                    const currentHeatHeader = document.getElementById('current-heat-header');
-                    if (currentHeatHeader) {
-                        currentHeatHeader.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                    }
-                }, 100);
+                const currentHeatHeader = document.getElementById('current-heat-header');
+                if (currentHeatHeader) {
+                    currentHeatHeader.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }
             }
 
-            document.getElementById('race-table-container').addEventListener('change', async (e) => {
-                if (e.target.classList.contains('time-input')) {
-                    const input = e.target;
-                    const concurrentId = input.dataset.concurrentId;
-                    const mancheIndex = parseInt(input.dataset.mancheIndex, 10);
-                    const newTime = parseTimeToMillis(input.value);
+            function startCompetitorLogic(myId) {
+                const chronoDocRef = doc(db, `artifacts/${appId}/public/data/raceState`, 'chrono');
+                const concurrentsCollection = collection(db, `artifacts/${appId}/public/data/concurrents`);
 
-                    const concurrentToUpdate = concurrents.find(c => c.id === concurrentId);
-                    if (concurrentToUpdate) {
-                        concurrentToUpdate.manches[mancheIndex] = newTime;
-                        const docRef = doc(db, `artifacts/${appId}/public/data/concurrents`, concurrentId);
-                        await updateDoc(docRef, { manches: concurrentToUpdate.manches });
+                onSnapshot(concurrentsCollection, (snapshot) => {
+                    const concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    // Listen to chrono changes as well
+                    onSnapshot(chronoDocRef, (chronoDoc) => {
+                        const chronoData = chronoDoc.data();
+                        renderCompetitorDashboard(myId, concurrents, chronoData);
+                    });
+                });
+            }
+
+            function renderCompetitorDashboard(myId, allConcurrents, chronoData) {
+                const me = allConcurrents.find(c => c.id === myId);
+                if (!me) return;
+                
+                // Re-select elements inside the function to ensure they exist
+                const nameEl = document.getElementById('competitor-dashboard-name');
+                const bestTimeEl = document.getElementById('competitor-dashboard-best-time');
+                const rankEl = document.getElementById('competitor-dashboard-rank');
+                const gapEl = document.getElementById('competitor-dashboard-gap');
+                const rankingBody = document.getElementById('competitor-dashboard-focused-ranking');
+                const timesTableHead = document.getElementById('competitor-dashboard-times-head');
+                const timesTableBody = document.getElementById('competitor-dashboard-times-body');
+                
+                // Defensive check
+                if (!nameEl || !bestTimeEl || !rankEl || !gapEl || !rankingBody || !timesTableHead || !timesTableBody) {
+                    console.error("One or more competitor dashboard elements are missing from the DOM.");
+                    return;
+                }
+
+                allConcurrents.forEach(c => {
+                    const officialRuns = c.manches.slice(2).filter(m => m && m.time !== null).map(m => m.time);
+                    c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
+                });
+
+                const ranked = allConcurrents.filter(c => c.meilleurTemps !== null).sort((a, b) => a.meilleurTemps - b.meilleurTemps);
+                const myRankIndex = ranked.findIndex(c => c.id === myId);
+                const myRank = myRankIndex !== -1 ? myRankIndex + 1 : "-";
+                const tempsPremier = ranked.length > 0 ? ranked[0].meilleurTemps : null;
+                const myGap = (tempsPremier !== null && me.meilleurTemps !== null && myRank !== 1) ? me.meilleurTemps - tempsPremier : null;
+
+                nameEl.textContent = me.nom;
+                bestTimeEl.textContent = formatTime(me.meilleurTemps);
+                rankEl.textContent = myRank;
+                gapEl.textContent = formatEcart(myGap);
+                
+                rankingBody.innerHTML = '';
+                const start = Math.max(0, myRankIndex - 1);
+                const end = Math.min(ranked.length, myRankIndex + 2);
+                for (let i = start; i < end; i++) {
+                    const c = ranked[i];
+                    const row = document.createElement('tr');
+                    row.className = c.id === myId ? 'bg-blue-100 font-bold' : '';
+                    row.innerHTML = `
+                        <td class="p-3">${i + 1}</td>
+                        <td class="p-3">${c.nom}</td>
+                        <td class="p-3 font-mono">${formatTime(c.meilleurTemps)}</td>
+                    `;
+                    rankingBody.appendChild(row);
+                }
+
+                const mancheHeaders = Array.from({ length: chronoData.currentManche }, (_, i) => i < 2 ? `Test ${i + 1}` : `Course ${i - 1}`);
+                timesTableHead.innerHTML = mancheHeaders.map(h => `<th class="p-3 text-left text-xs font-bold uppercase">${h}</th>`).join('');
+                
+                const timesRow = document.createElement('tr');
+                timesRow.innerHTML = me.manches.slice(0, chronoData.currentManche).map(manche => {
+                    const timeDisplay = manche ? formatTime(manche.time) : '-';
+                    const speedDisplay = manche && manche.speed ? `<span class="block text-xs text-gray-500 font-normal">${manche.speed} km/h</span>` : '';
+                    return `<td class="p-3 font-mono">${timeDisplay}${speedDisplay}</td>`;
+                }).join('');
+                timesTableBody.innerHTML = '';
+                timesTableBody.appendChild(timesRow);
+            }
+
+            function showTutorialModalIfNeeded() {
+                const tutorialShown = localStorage.getItem('tutorialShown');
+                if (!tutorialShown) {
+                    const modal = document.getElementById('tutorial-modal');
+                    modal.style.display = 'flex';
+
+                    document.getElementById('show-tutorial-btn').onclick = () => {
+                        modal.style.display = 'none';
+                        displayTutorialForRole(currentUser.role);
+                        localStorage.setItem('tutorialShown', 'true');
+                    };
+                    document.getElementById('close-tutorial-btn').onclick = () => {
+                        modal.style.display = 'none';
+                        localStorage.setItem('tutorialShown', 'true');
+                    };
+                }
+            }
+
+            function displayTutorialForRole(role) {
+                let title = "Tutoriel";
+                let content = `<div class="text-left space-y-3">`;
+                
+                switch(role) {
+                    case 'Super Admin':
+                    case 'Organisation':
+                        title = "Guide pour l'Organisation";
+                        content += `
+                            <p>En tant qu'<strong>Organisateur</strong>, vous avez accès à toutes les fonctionnalités :</p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong>Chrono :</strong> Gérez le départ et l'arrivée, enregistrez les temps et passez aux manches suivantes.</li>
+                                <li><strong>Radar :</strong> Saisissez la vitesse d'un concurrent en piste.</li>
+                                <li><strong>Concurrents :</strong> Affichez la liste des concurrents, modifiez leurs informations et validez les documents.</li>
+                                <li><strong>Bénévoles :</strong> Gérez la liste des bénévoles, leurs affectations et le matériel distribué.</li>
+                                <li><strong>Administration :</strong> (Super Admin uniquement) Gérez les accès à l'application et effectuez des réinitialisations de données.</li>
+                            </ul>
+                            <p class="font-semibold mt-4">N'oubliez pas de sauvegarder après chaque modification dans les tableaux !</p>
+                        `;
+                        break;
+                    case 'Chrono Départ':
+                         title = "Guide pour le Chrono Départ";
+                         content += `
+                            <p>Votre rôle est crucial pour le bon déroulement de la course :</p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong>Onglet Chrono :</strong> C'est votre principal outil.</li>
+                                <li><strong>Sélection du concurrent :</strong> Avant le départ, tapez le nom du concurrent dans la barre de recherche et sélectionnez-le. Son nom doit s'afficher en dessous.</li>
+                                <li><strong>Bouton Démarrer :</strong> Une fois le concurrent prêt et sélectionné, cliquez sur <strong>Démarrer</strong>. Le bouton deviendra inaccessible et le chronomètre se lancera pour tout le monde.</li>
+                                <li>Le pôle <strong>Chrono Arrivée</strong> prendra le relais pour arrêter le temps.</li>
+                            </ul>
+                        `;
+                        break;
+                    case 'Chrono Arrivée':
+                        title = "Guide pour le Chrono Arrivée";
+                        content += `
+                            <p>Votre rôle est de finaliser chaque course :</p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong>Onglet Chrono :</strong> Surveillez cet onglet.</li>
+                                <li><strong>Chronomètre en cours :</strong> Quand un concurrent est en piste, le chronomètre tourne. Le bouton <strong>Arrêter</strong> est alors accessible pour vous.</li>
+                                <li><strong>Ligne d'arrivée :</strong> Dès que la caisse à savon franchit la ligne, cliquez sur <strong>Arrêter et Enregistrer</strong>.</li>
+                                <li>Une fenêtre de confirmation s'affichera avec le temps, le classement et les écarts. Le temps est automatiquement sauvegardé pour tout le monde.</li>
+                            </ul>
+                        `;
+                        break;
+                    case 'Saisie Radar':
+                        title = "Guide pour la Saisie Radar";
+                        content += `
+                            <p>Votre mission est de mesurer la vitesse de pointe :</p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong>Onglet Radar :</strong> Allez sur cet onglet.</li>
+                                <li><strong>Concurrent en piste :</strong> Le nom du concurrent en course s'affiche en haut.</li>
+                                <li><strong>Saisie :</strong> Dès que vous avez la vitesse sur votre appareil, tapez-la dans le champ numérique.</li>
+                                <li><strong>Enregistrer :</strong> Cliquez sur <strong>Enregistrer Vitesse</strong>. La vitesse sera automatiquement associée à la descente en cours du concurrent.</li>
+                            </ul>
+                        `;
+                        break;
+                    default:
+                        content += "<p>Votre rôle vous donne un accès en lecture seule à la plupart des informations de la course. Vous pouvez suivre les temps en direct et consulter les classements.</p>";
+                }
+                
+                content += "</div>";
+                showConfirmationModal(content, () => {}, title);
+            }
+
+            // --- Démarrage de l'application ---
+            onSnapshot(chronoDocRef, (doc) => {
+                const chronoData = doc.data();
+                if (chronoData) {
+                    currentManche = chronoData.currentManche || 1;
+                    const mancheText = currentManche <= 2 ? `Descente test ${currentManche}` : `Course ${currentManche - 2}`;
+                    currentMancheDisplay.textContent = `Manche Actuelle : ${mancheText}`;
+
+                    if (chronoData.running) {
+                        if (!chronoInterval) {
+                            chronoInterval = setInterval(() => updateChronoDisplay(chronoData.startTime), 50);
+                        }
+                    } else {
+                        clearInterval(chronoInterval);
+                        chronoInterval = null;
+                        chronoDisplay.textContent = "00:00:00";
+                    }
+
+                    if (chronoData.selectedConcurrent) {
+                        const selected = concurrents.find(c => c.id === chronoData.selectedConcurrent);
+                        selectedConcurrentDisplay.textContent = selected ? selected.nom : 'Concurrent non trouvé';
+                    } else if (chronoData.currentConcurrent) {
+                         const current = concurrents.find(c => c.id === chronoData.currentConcurrent);
+                        selectedConcurrentDisplay.textContent = current ? `EN PISTE : ${current.nom}` : '';
+                    } else {
+                        selectedConcurrentDisplay.textContent = '';
+                    }
+
+                    document.getElementById('radar-concurrent-display').textContent = chronoData.currentConcurrent ? concurrents.find(c => c.id === chronoData.currentConcurrent)?.nom : 'Aucun concurrent en piste';
+
+
+                    updateChronoButtons(chronoData);
+                    renderRaceTable(); // Re-render table on manche change
+                    
+                    // Live display update
+                    if (currentDisplayType === 'live' && chronoData.lastRecordedTime) {
+                        renderDisplayContent('live', { lastRecordedTime: chronoData.lastRecordedTime });
                     }
                 }
             });
 
-            function populateConcurrentsDatalist() {
-                concurrentsDatalist.innerHTML = '';
-                concurrents.sort((a, b) => a.numero - b.numero).forEach(concurrent => {
-                    const option = document.createElement("option");
-                    option.value = concurrent.nom;
-                    concurrentsDatalist.appendChild(option);
-                });
-            }
-
-            function showGrid(type) {
-                const title = document.getElementById("grid-title");
-                const gridHead = document.querySelector("#grid-table thead");
-                const gridBody = document.getElementById("grid-table-body");
-                gridBody.innerHTML = "";
-
-                if (type === 'podium-fastest-lap') {
-                    title.textContent = "Podium - Descente la plus Rapide";
-                    gridHead.innerHTML = `<tr>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Meilleur Temps</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Écart 1er</th>
-                    </tr>`;
-                    const ranked = [...concurrents].filter(c => c.meilleurTemps !== null).sort((a,b) => a.meilleurTemps - b.meilleurTemps);
-                    const tempsPremier = ranked.length > 0 ? ranked[0].meilleurTemps : null;
-
-                    ranked.forEach((c, i) => {
-                        const ecartPremier = tempsPremier !== null ? c.meilleurTemps - tempsPremier : null;
-                        
-                        let classementHTML = i + 1;
-                        if (classementHTML === 1) classementHTML = `🥇 ${classementHTML}`;
-                        else if (classementHTML === 2) classementHTML = `🥈 ${classementHTML}`;
-                        else if (classementHTML === 3) classementHTML = `🥉 ${classementHTML}`;
-
-                        gridBody.innerHTML += `<tr>
-                            <td class="px-4 py-3 text-sm font-bold">${classementHTML}</td>
-                            <td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td>
-                            <td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.meilleurTemps)}</td>
-                            <td class="px-4 py-3 text-sm text-red-500">${formatEcart(ecartPremier)}</td>
-                        </tr>`;
-                    });
-                } else if (type === 'podium-grand-prix') {
-                    title.textContent = "Podium - Grand Prix";
-                     gridHead.innerHTML = `<tr>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Temps Total</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Écart 1er</th>
-                    </tr>`;
-                    
-                    concurrents.forEach(c => {
-                        const officialRuns = c.manches.slice(2).filter(t => t !== null && t !== undefined);
-                        c.completedRuns = officialRuns.length;
-                        c.tempsTotal = officialRuns.length > 0 ? officialRuns.reduce((a, b) => a + b, 0) : null;
-                    });
-                    
-                    const maxCourses = currentManche > 2 ? currentManche - 2 : 0;
-                    
-                    let ranked = [];
-                    if (maxCourses > 0) {
-                        ranked = concurrents.filter(c => c.completedRuns === maxCourses && c.tempsTotal !== null).sort((a,b) => a.tempsTotal - b.tempsTotal);
-                    }
-
-                    const tempsPremier = ranked.length > 0 ? ranked[0].tempsTotal : null;
-
-                    ranked.forEach((c, i) => {
-                        const ecartPremier = tempsPremier !== null ? c.tempsTotal - tempsPremier : null;
-                        
-                        let classementHTML = i + 1;
-                        if (classementHTML === 1) classementHTML = `🥇 ${classementHTML}`;
-                        else if (classementHTML === 2) classementHTML = `🥈 ${classementHTML}`;
-                        else if (classementHTML === 3) classementHTML = `🥉 ${classementHTML}`;
-
-                        gridBody.innerHTML += `<tr>
-                            <td class="px-4 py-3 text-sm font-bold">${classementHTML}</td>
-                            <td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td>
-                            <td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.tempsTotal)}</td>
-                            <td class="px-4 py-3 text-sm text-red-500">${formatEcart(ecartPremier)}</td>
-                        </tr>`;
-                    });
-                } else { // Previous or Current heat
-                    const isCurrent = type === 'current';
-                    if (!isCurrent && currentManche === 1) { showConfirmationModal("Aucune manche précédente à afficher.", () => {}, "Information"); return; }
-                    
-                    const mancheIndex = isCurrent ? currentManche - 1 : currentManche - 2;
-                    const mancheName = mancheIndex < 2 ? `Descente test ${mancheIndex + 1}` : `Course ${mancheIndex - 1}`;
-                    
-                    title.textContent = isCurrent ? `Classement - ${mancheName} (en cours)` : `Classement - ${mancheName}`;
-                    gridHead.innerHTML = `<tr>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tl-xl">Position</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Concurrent</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Temps</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase rounded-tr-xl">Écart 1er</th>
-                    </tr>`;
-                    const ranked = [...concurrents].filter(c => c.manches[mancheIndex] !== null).sort((a,b) => a.manches[mancheIndex] - b.manches[mancheIndex]);
-                    const tempsPremier = ranked.length > 0 ? ranked[0].manches[mancheIndex] : null;
-
-                    ranked.forEach((c, i) => {
-                        const ecartPremier = tempsPremier !== null ? c.manches[mancheIndex] - tempsPremier : null;
-                        let classementHTML = i + 1;
-                        if (classementHTML === 1) classementHTML = `🥇 ${classementHTML}`;
-                        else if (classementHTML === 2) classementHTML = `🥈 ${classementHTML}`;
-                        else if (classementHTML === 3) classementHTML = `🥉 ${classementHTML}`;
-
-                        gridBody.innerHTML += `<tr>
-                            <td class="px-4 py-3 text-sm font-bold">${classementHTML}</td>
-                            <td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td>
-                            <td class="px-4 py-3 text-sm font-semibold text-blue-600">${formatTime(c.manches[mancheIndex])}</td>
-                            <td class="px-4 py-3 text-sm text-red-500">${formatEcart(ecartPremier)}</td>
-                        </tr>`;
-                    });
+            chronoSearchInput.addEventListener('change', async () => {
+                const selectedName = chronoSearchInput.value;
+                const selectedConcurrent = concurrents.find(c => c.nom === selectedName);
+                if (selectedConcurrent) {
+                    await updateDoc(chronoDocRef, { selectedConcurrent: selectedConcurrent.id });
+                } else {
+                    await updateDoc(chronoDocRef, { selectedConcurrent: null });
                 }
-                mainApp.style.display="none",gridScreen.style.display="flex"
-            }
+                chronoSearchInput.value = '';
+            });
+
             startBtn.addEventListener('click', startChrono);
             stopBtn.addEventListener('click', stopChrono);
             resetBtn.addEventListener('click', resetChrono);
             newHeatBtn.addEventListener('click', startNewHeat);
             resetRaceBtn.addEventListener('click', resetRace);
             saveConcurrentsBtn.addEventListener('click', saveConcurrentsData);
-            addConcurrentBtn.addEventListener('click', () => openConcurrentModal());
             closeConcurrentModalBtn.addEventListener('click', () => {
-                document.getElementById('add-concurrent-modal').style.display = 'none';
+                addConcurrentModal.style.display = 'none';
                 editingConcurrentId = null;
             });
+            addConcurrentBtn.addEventListener('click', () => openConcurrentModal());
+            filterConcurrentsInput.addEventListener('input', renderConcurrentsAdminTable);
+            filterRaceInput.addEventListener('input', renderRaceTable);
+
             addConcurrentFormModal.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const nom = document.getElementById("concurrent-nom-modal").value;
-                const isChild = document.getElementById("concurrent-enfant-modal").checked;
+                const nom = document.getElementById('concurrent-nom-modal').value;
+                const isChild = document.getElementById('concurrent-enfant-modal').checked;
                 
                 if (editingConcurrentId) {
-                    const docRef = doc(db, `artifacts/${appId}/public/data/concurrents`, editingConcurrentId);
-                    await updateDoc(docRef, { nom: nom, isChild: isChild });
+                    await updateDoc(doc(db, `artifacts/${appId}/public/data/concurrents`, editingConcurrentId), { nom, isChild });
                 } else {
-                    const newNumero = concurrents.length > 0 ? Math.max(...concurrents.map(c => c.numero)) + 1 : 1;
                     await addDoc(collection(db, `artifacts/${appId}/public/data/concurrents`), {
-                        numero: newNumero,
                         nom: nom,
                         isChild: isChild,
+                        numero: concurrents.length + 1,
+                        documents: { dossier: false, assurance: false, paiement: { ok: false, montant: "25" } },
+                        equipements: false,
+                        controle: "À vérifier",
                         manches: new Array(8).fill(null),
                         meilleurTemps: null,
                         tempsTotal: null,
-                        documents: { dossier: false, paiement: { ok: false, montant: "" }, assurance: false },
-                        equipements: false,
-                        controle: "À vérifier"
                     });
                 }
-                document.getElementById('add-concurrent-modal').style.display = "none";
+                
+                addConcurrentModal.style.display = 'none';
                 addConcurrentFormModal.reset();
                 editingConcurrentId = null;
             });
-            
-            chronoSearchInput.addEventListener('input', async () => {
-                const value = chronoSearchInput.value;
-                const concurrent = concurrents.find(c => c.nom === value);
-                const id = concurrent ? concurrent.id : null;
-                await updateDoc(chronoDocRef, { selectedConcurrent: id });
-            });
-            
-            async function clearDbLastRecordedTime() {
-                // Cette fonction efface le champ de la base de données, ce qui déclenchera la fermeture pour tout le monde.
-                clearTimeout(modalTimeout); 
-                const docSnap = await getDoc(chronoDocRef);
-                if (docSnap.exists() && docSnap.data().lastRecordedTime) {
-                    await updateDoc(chronoDocRef, { lastRecordedTime: null });
-                }
-            }
-
-            closeTimeConfirmModalBtn.addEventListener('click', clearDbLastRecordedTime);
-
-            previousHeatBtn.addEventListener('click', () => showGrid('previous'));
-            currentHeatBtn.addEventListener('click', () => showGrid('current'));
-            podiumFastestLapBtn.addEventListener('click', () => showGrid('podium-fastest-lap'));
-            podiumGrandPrixBtn.addEventListener('click', () => showGrid('podium-grand-prix'));
-
-            closeGridBtn.addEventListener('click',()=>{mainApp.style.display="block",gridScreen.style.display="none"});
-            filterConcurrentsInput.addEventListener('input', renderConcurrentsAdminTable);
-            filterRaceInput.addEventListener('input', renderRaceTable);
-            filterAccessInput.addEventListener('input', renderAccessTable);
 
             // =========================
-            // ACCESS LOGIC & INIT
-            // =========================
-            const userRoleSelect = document.getElementById('user-role');
-            const userCompetitorLinkContainer = document.getElementById('user-competitor-link-container');
-            const userCompetitorSelect = document.getElementById('user-competitor-select');
-
-            async function populateCompetitorsForAccessForm() {
-                userCompetitorSelect.innerHTML = '<option value="">-- Sélectionnez un concurrent --</option>';
-                const sortedConcurrents = [...concurrents].sort((a,b) => a.numero - b.numero);
-                sortedConcurrents.forEach(c => {
-                    const option = document.createElement('option');
-                    option.value = c.id;
-                    option.textContent = `${c.numero} - ${c.nom}`;
-                    userCompetitorSelect.appendChild(option);
-                });
-            }
-            
-            userRoleSelect.addEventListener('change', () => {
-                if (userRoleSelect.value === 'Concurrent') {
-                    userCompetitorLinkContainer.style.display = 'block';
-                } else {
-                    userCompetitorLinkContainer.style.display = 'none';
-                }
-            });
-
-            function resetUserForm() {
-                addUserForm.reset();
-                editingUserId = null;
-                addUserBtn.textContent = '+ Ajouter';
-                cancelEditUserBtn.style.display = 'none';
-                userCompetitorLinkContainer.style.display = 'none';
-            }
-            
-            function openUserEditForm(userId) {
-                const userToEdit = utilisateursAutorises.find(u => u.id === userId);
-                if (userToEdit) {
-                    editingUserId = userId;
-                    document.getElementById('user-nom').value = userToEdit.nom;
-                    document.getElementById('user-prenom').value = userToEdit.prenom;
-                    document.getElementById('user-tel').value = userToEdit.tel;
-                    userRoleSelect.value = userToEdit.role;
-                    
-                    if (userToEdit.role === 'Concurrent') {
-                        userCompetitorLinkContainer.style.display = 'block';
-                        userCompetitorSelect.value = userToEdit.linkedCompetitorId || "";
-                    } else {
-                        userCompetitorLinkContainer.style.display = 'none';
-                    }
-
-                    addUserBtn.textContent = 'Enregistrer';
-                    cancelEditUserBtn.style.display = 'inline-block';
-                }
-            }
-            
-            function renderAccessTable() {
-                const filterValue = filterAccessInput.value.toLowerCase();
-                const filteredData = utilisateursAutorises.filter(u => `${u.prenom} ${u.nom}`.toLowerCase().includes(filterValue));
-
-                accessTableBody.innerHTML = "";
-                filteredData.forEach(user => {
-                    const row = document.createElement("tr");
-                    const displayRole = user.role;
-                    let roleInfo = displayRole;
-                    if(user.role === 'Concurrent' && user.linkedCompetitorId) {
-                        const linked = concurrents.find(c => c.id === user.linkedCompetitorId);
-                        if(linked) {
-                            roleInfo += ` (${linked.nom})`;
-                        }
-                    }
-
-                    const roleClass = ["Organisation", "Super Admin", "Chrono Départ", "Chrono Arrivée", "MAIRE", "Gestionnaire"].includes(displayRole) ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800";
-                    row.innerHTML = `
-                        <td class="px-4 py-3 text-sm text-gray-800">${user.prenom} ${user.nom}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${user.tel}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleClass}">${roleInfo}</span></td>
-                        <td class="px-4 py-3 text-sm text-gray-500">
-                           <div class="flex items-center gap-2">
-                                <button data-id="${user.id}" class="edit-user-btn text-blue-600 hover:text-blue-700 text-xs font-medium">Modifier</button>
-                                <span class="text-gray-300">|</span>
-                                <button data-id="${user.id}" class="delete-user-btn text-red-500 hover:text-red-700 text-xs font-medium">Supprimer</button>
-                            </div>
-                        </td>
-                    `;
-                    accessTableBody.appendChild(row);
-                });
-                
-                document.querySelectorAll(".delete-user-btn").forEach(btn => {
-                    btn.addEventListener("click", event => {
-                        const userId = event.target.dataset.id;
-                        const user = utilisateursAutorises.find(u => u.id === userId);
-                        if (user.role === 'Super Admin') {
-                           showConfirmationModal("Action impossible : vous ne pouvez pas supprimer le Super Admin.", () => {}, "Erreur");
-                            return;
-                        }
-                          const message = `Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>${user.prenom} ${user.nom}</strong> ?`;
-                          showConfirmationModal(message, () => {
-                            deleteDoc(doc(db, `artifacts/${appId}/public/data/users`, userId));
-                          });
-                    });
-                });
-                
-                document.querySelectorAll(".edit-user-btn").forEach(btn => {
-                    btn.addEventListener("click", event => {
-                        openUserEditForm(event.target.dataset.id);
-                    });
-                });
-            }
-            
-            cancelEditUserBtn.addEventListener('click', resetUserForm);
-
-            addUserForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const role = userRoleSelect.value;
-                const userData = {
-                    nom: document.getElementById("user-nom").value.trim().toUpperCase(),
-                    prenom: document.getElementById("user-prenom").value.trim(),
-                    tel: document.getElementById("user-tel").value.replace(/\s/g, ""),
-                    role: role,
-                    linkedCompetitorId: role === 'Concurrent' ? userCompetitorSelect.value : null
-                };
-
-                if (role === 'Concurrent' && !userData.linkedCompetitorId) {
-                    showConfirmationModal("Veuillez lier cet accès à un concurrent.", () => {}, "Action requise");
-                    return;
-                }
-
-                if(editingUserId) {
-                    const docRef = doc(db, `artifacts/${appId}/public/data/users`, editingUserId);
-                    await updateDoc(docRef, userData);
-                } else {
-                     if (utilisateursAutorises.some(u => u.tel === userData.tel)) {
-                        showConfirmationModal("Un utilisateur avec ce numéro de téléphone existe déjà.", () => {}, "Erreur");
-                        return;
-                    }
-                    await addDoc(collection(db, `artifacts/${appId}/public/data/users`), userData);
-                }
-                resetUserForm();
-            });
-            
-            // =========================
-            // RESET LOGIC
-            // =========================
-            const resetAccessBtn = document.getElementById('reset-access-btn');
-
-            async function clearCollection(collectionName) {
-                const collectionRef = collection(db, `artifacts/${appId}/public/data/${collectionName}`);
-                const snapshot = await getDocs(collectionRef);
-                if (snapshot.empty) return;
-                
-                const batch = writeBatch(db);
-                snapshot.docs.forEach(doc => {
-                    batch.delete(doc.ref);
-                });
-                await batch.commit();
-            }
-
-            resetBenevolesBtn.addEventListener('click', async () => {
-                showConfirmationModal("ATTENTION : Vous êtes sur le point de supprimer <strong>TOUS</strong> les bénévoles.<br><br>Cette action est IRRÉVERSIBLE.", async () => {
-                    try {
-                        await clearCollection('benevoles');
-                        alert("La base de données des bénévoles a été réinitialisée.");
-                    } catch (e) {
-                        console.error("Erreur: ", e);
-                        alert("Une erreur est survenue.");
-                    }
-                });
-            });
-
-            resetConcurrentsBtn.addEventListener('click', async () => {
-                showConfirmationModal("ATTENTION : Vous êtes sur le point de supprimer <strong>TOUS</strong> les concurrents et <strong>TOUS</strong> les temps de course.<br><br>Cette action est IRRÉVERSIBLE.", async () => {
-                    try {
-                        await clearCollection('concurrents');
-                        await setDoc(chronoDocRef, { running: false, startTime: null, currentConcurrent: null, currentManche: 1 });
-                        alert("La base de données des concurrents et de la course a été réinitialisée.");
-                    } catch (e) {
-                        console.error("Erreur: ", e);
-                        alert("Une erreur est survenue.");
-                    }
-                });
-            });
-            
-            if(resetAccessBtn) {
-                resetAccessBtn.addEventListener('click', async () => {
-                    showConfirmationModal("ATTENTION : Vous allez supprimer <strong>TOUS</strong> les accès, <strong>SAUF</strong> le Super Administrateur.<br><br>Cette action est IRRÉVERSIBLE.", async () => {
-                        try {
-                            const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
-                            const snapshot = await getDocs(usersCollectionRef);
-                            const batch = writeBatch(db);
-                            snapshot.docs.forEach(doc => {
-                                const userData = doc.data();
-                                if (!(userData.nom === "POURCEL" && userData.prenom === "Romain" && userData.tel === "0613255651")) {
-                                    batch.delete(doc.ref);
-                                }
-                            });
-                            await batch.commit();
-                            alert("La base de données des accès a été réinitialisée.");
-                        } catch (e) {
-                            console.error("Erreur: ", e);
-                            alert("Une erreur est survenue.");
-                        }
-                    });
-                });
-            }
-
-
-            // =========================
-            // PERMISSIONS & FINAL SETUP
+            // ADMIN LOGIC
             // =========================
             function setupBenevolePermissions() {
-                const canEdit = isSuperAdmin || currentUser.role === 'Organisation';
-                document.querySelectorAll('#table-body input, #table-body select').forEach(el => {
-                    const cell = el.closest('td');
-                    if (cell && cell.dataset.column === 'acces') {
-                         el.disabled = !isSuperAdmin;
-                    } else {
-                         el.disabled = !canEdit;
-                    }
-                });
-                 document.querySelectorAll('.delete-benevole-btn, .edit-benevole-btn').forEach(btn => btn.style.display = canEdit ? '' : 'none');
+                const canManage = isSuperAdmin || currentUser.role === 'Organisation';
+                const isRadioManager = currentUser.role === 'Responsable Radio';
+
+                document.getElementById('add-benevole-btn').style.display = canManage ? '' : 'none';
+                document.getElementById('save-btn').style.display = canManage || isRadioManager ? '' : 'none';
+                document.getElementById('missing-info-container').style.display = canManage ? 'flex' : 'none';
+
+                if (isSuperAdmin) document.getElementById('tab-admin').style.display = 'flex';
+                if(canManage) document.getElementById('toggleTel').parentElement.style.display = 'flex'; else document.getElementById('toggleTel').parentElement.style.display = 'none';
+
+                const canManageConcurrents = isSuperAdmin || currentUser.role === 'Organisation';
+                addConcurrentBtn.style.display = canManageConcurrents ? '' : 'none';
+                saveConcurrentsBtn.style.display = canManageConcurrents ? '' : 'none';
+
+                const canManageRace = isSuperAdmin || currentUser.role === 'Organisation';
+                resetRaceBtn.style.display = canManageRace ? '' : 'none';
+                newHeatBtn.style.display = canManageRace ? '' : 'none';
+
+                const canImportExport = isSuperAdmin || currentUser.role === 'Organisation';
+                importBtn.style.display = canImportExport ? '' : 'none';
+                exportBtn.style.display = canImportExport ? '' : 'none';
             }
 
-            function setupPermissions() {
-                const role = currentUser.role;
-                let firstVisibleTabId = null;
-
-                const allTabs = ['tab-race', 'tab-podium', 'tab-concurrents', 'tab-dashboard', 'tab-admin'];
-                const visibleTabs = {
-                    'Organisation': ['tab-race', 'tab-podium', 'tab-concurrents', 'tab-dashboard'],
-                    'Responsable Radio': ['tab-dashboard'],
-                    'MAIRE': ['tab-race', 'tab-podium', 'tab-dashboard'],
-                    'Chrono Départ': ['tab-race', 'tab-podium', 'tab-dashboard'],
-                    'Chrono Arrivée': ['tab-race', 'tab-podium', 'tab-dashboard'],
-                    'Bénévole': ['tab-race', 'tab-podium', 'tab-dashboard'],
-                    'Concurrent': ['tab-race', 'tab-podium'],
-                    'Gestionnaire': ['tab-concurrents', 'tab-dashboard']
-                };
-
-                allTabs.forEach(tabId => {
-                    const tabElement = document.getElementById(tabId);
-                    if (tabElement) tabElement.style.display = 'none';
-                });
-
-                if (isSuperAdmin) {
-                    allTabs.forEach(tabId => {
-                        const tabElement = document.getElementById(tabId);
-                        if (tabElement) tabElement.style.display = 'block';
-                    });
-                    firstVisibleTabId = 'tab-race';
-                } else if (visibleTabs[role]) {
-                    visibleTabs[role].forEach(tabId => {
-                        const tabElement = document.getElementById(tabId);
-                        if (tabElement) tabElement.style.display = 'block';
-                    });
-                    firstVisibleTabId = visibleTabs[role][0];
-                }
-                
-                if (firstVisibleTabId) {
-                    document.getElementById(firstVisibleTabId).click();
-                }
-                
-                const canEditBenevoles = isSuperAdmin || role === 'Organisation';
-                const canEditConcurrents = isSuperAdmin || role === 'Organisation' || role === 'Gestionnaire';
-                const canSeeChronoAndPodium = isSuperAdmin || role === 'Organisation' || role === 'Chrono Départ' || role === 'Chrono Arrivée' || role === 'MAIRE';
-                const canImportExport = isSuperAdmin || role === 'Organisation';
-                const isRadioManager = role === 'Responsable Radio';
-                const isMaire = role === 'MAIRE';
-                const isRestrictedUser = (currentUser.nom === 'FIEVET' && currentUser.prenom === 'Alexis') ||
-                                         (currentUser.nom === 'HAUTOT' && currentUser.prenom === 'CHRISTOPHE') ||
-                                         (currentUser.nom === 'LE BRAS' && currentUser.prenom === 'FRANK');
-
-                if (!canEditBenevoles && !isRadioManager) {
-                    document.getElementById('add-benevole-btn').style.display = 'none';
-                    document.getElementById('save-btn').style.display = 'none';
-                    document.getElementById('missing-info-container').style.display = 'none';
-                }
-                 if(isRadioManager || isMaire){
-                    document.getElementById('add-benevole-btn').style.display = 'none';
-                    document.getElementById('missing-info-container').style.display = 'none';
-                    document.getElementById('toggleTel').parentElement.style.display = 'none';
-                 }
-                  if(isMaire) {
-                    document.getElementById('save-btn').style.display = 'none';
-                  }
-
-
-                if (!canEditConcurrents) {
-                    addConcurrentBtn.style.display = 'none';
-                    saveConcurrentsBtn.style.display = 'none';
-                }
-                
-                if (!isSuperAdmin) {
-                    resetRaceBtn.style.display = 'none';
-                }
-
-                if (!canImportExport) {
-                    importBtn.style.display = 'none';
-                    exportBtn.style.display = 'none';
-                }
-
-                const canStartHeat = isSuperAdmin || role === 'Organisation' || role === 'Chrono Départ';
-                if (!canStartHeat) {
-                    document.getElementById('new-heat-btn').style.display = 'none';
-                }
-
-                if (!canSeeChronoAndPodium || isRestrictedUser) {
-                    document.getElementById('chrono-container').style.display = 'none';
-                    podiumFastestLapBtn.style.display = 'none';
-                    podiumGrandPrixBtn.style.display = 'none';
-                    previousHeatBtn.style.display = 'none';
-                    newHeatBtn.style.display = 'none';
-                    resetRaceBtn.style.display = 'none';
-                }
-                
-                if (!(isSuperAdmin || currentUser.role === 'Organisation')) {
-                    toggleTelCheckbox.parentElement.style.display = 'none';
-                }
-
-            }
-            
-            // Tabs switching logic
-            const tabs = document.querySelectorAll('.tab-button');
-            const contents = document.querySelectorAll('.tab-content');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    tabs.forEach(item => item.classList.remove('active'));
-                    tab.classList.add('active');
-                    const targetId = tab.id.replace('tab-', 'content-');
-                    contents.forEach(content => {
-                        content.style.display = content.id === targetId ? 'block' : 'none';
-                    });
-                });
-            });
-
-            // Admin Sub-tabs Logic
-            const showAccessBtn = document.getElementById('show-access-btn');
-            const showResetBtn = document.getElementById('show-reset-btn');
-            const adminAccessSection = document.getElementById('admin-access-section');
-            const adminResetSection = document.getElementById('admin-reset-section');
-
-            if(showAccessBtn) {
-                showAccessBtn.addEventListener('click', () => {
-                    showAccessBtn.classList.add('active');
-                    showResetBtn.classList.remove('active');
-                    adminAccessSection.style.display = 'block';
-                    adminResetSection.style.display = 'none';
-                });
-            }
-            if(showResetBtn) {
-                showResetBtn.addEventListener('click', () => {
-                    showResetBtn.classList.add('active');
-                    showAccessBtn.classList.remove('active');
-                    adminResetSection.style.display = 'block';
-                    adminAccessSection.style.display = 'none';
+            function populateConcurrentsDatalist() {
+                concurrentsDatalist.innerHTML = '';
+                concurrents.sort((a,b) => a.nom.localeCompare(b.nom)).forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.nom;
+                    concurrentsDatalist.appendChild(option);
                 });
             }
 
-
-            // Credits Modal Logic
-            document.querySelectorAll('.credits-btn-trigger').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.getElementById('credits-modal').style.display = 'flex';
+            function populateCompetitorsForAccessForm() {
+                const select = document.getElementById('user-competitor-select');
+                select.innerHTML = '<option value="">-- Sélectionner un concurrent --</option>';
+                concurrents.sort((a, b) => a.nom.localeCompare(b.nom)).forEach(c => {
+                    select.innerHTML += `<option value="${c.id}">${c.nom}</option>`;
                 });
-            });
-            document.getElementById('close-credits-modal-btn').addEventListener('click', () => {
-                document.getElementById('credits-modal').style.display = 'none';
-            });
+            }
 
+            // =========================
+            // PODIUMS / GRILLE DE DÉPART
+            // =========================
+            function renderGrid(manche) {
+                const gridTitle = document.getElementById('grid-title');
+                const gridTable = document.querySelector('#grid-table');
+                gridTable.innerHTML = '';
+                let concurrentsForGrid = [...concurrents];
 
-            // Import / Export Logic
-            exportBtn.addEventListener('click', async () => {
-                const benevolesSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/benevoles`));
-                const concurrentsSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/concurrents`));
-                const usersSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/users`));
-
-                const dataToExport = {
-                    benevoles: benevolesSnapshot.docs.map(doc => doc.data()),
-                    concurrents: concurrentsSnapshot.docs.map(doc => doc.data()),
-                    utilisateurs: usersSnapshot.docs.map(doc => doc.data())
-                };
-                
-                const dataStr = JSON.stringify(dataToExport, null, 2);
-                const dataBlob = new Blob([dataStr], {type: "application/json"});
-                const url = URL.createObjectURL(dataBlob);
-                const link = document.createElement('a');
-                link.href = url;
-                const date = new Date();
-                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                link.download = `sauvegarde-caisse-a-savon-${dateStr}.json`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            });
-
-            importBtn.addEventListener('click', () => importFile.click());
-            importFile.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = async function(e) {
-                    try {
-                        const imported = JSON.parse(e.target.result);
-                        if (imported.benevoles && imported.concurrents && imported.utilisateurs) {
-                            showConfirmationModal("Voulez-vous vraiment remplacer toutes les données actuelles par celles du fichier importé ?<br><br><strong>Cette action est irréversible.</strong>", async () => {
-                                // Protection du Super Admin
-                                let superAdminInImport = imported.utilisateurs.find(u => u.nom === "POURCEL" && u.prenom === "Romain" && u.tel === "0613255651");
-                                if (superAdminInImport) {
-                                    superAdminInImport.role = 'Super Admin';
-                                } else {
-                                    imported.utilisateurs.push({ nom: "POURCEL", prenom: "Romain", tel: "0613255651", role: "Super Admin" });
-                                }
-                                
-                                const collectionsToDelete = ['benevoles', 'concurrents', 'users'];
-                                for (const coll of collectionsToDelete) {
-                                    const snapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/${coll}`));
-                                    const deleteBatch = writeBatch(db);
-                                    snapshot.docs.forEach(doc => deleteBatch.delete(doc.ref));
-                                    await deleteBatch.commit();
-                                }
-
-                                const importBatch = writeBatch(db);
-                                imported.benevoles.forEach(item => {
-                                    const docRef = doc(collection(db, `artifacts/${appId}/public/data/benevoles`));
-                                    importBatch.set(docRef, item);
-                                });
-                                imported.concurrents.forEach(item => {
-                                    const docRef = doc(collection(db, `artifacts/${appId}/public/data/concurrents`));
-                                    importBatch.set(docRef, item);
-                                });
-                                imported.utilisateurs.forEach(item => {
-                                    const docRef = doc(collection(db, `artifacts/${appId}/public/data/users`));
-                                    importBatch.set(docRef, item);
-                                });
-                                await importBatch.commit();
-                                
-                                alert("Données importées avec succès ! La page va se recharger.");
-                                location.reload();
-                            });
-                        } else {
-                            showConfirmationModal("Fichier invalide ou mal formaté.", () => {}, "Erreur d'importation");
-                        }
-                    } catch (error) {
-                        showConfirmationModal("Erreur lors de la lecture du fichier.", () => {}, "Erreur d'importation");
-                        console.error("Erreur d'importation:", error);
-                    }
-                    importFile.value = '';
-                };
-                reader.readAsText(file);
-            });
-
-            // Initial Load Listeners
-            onSnapshot(collection(db, `artifacts/${appId}/public/data/benevoles`), (snapshot) => {
-                data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderBenevolesTable();
-            });
-             onSnapshot(collection(db, `artifacts/${appId}/public/data/concurrents`), (snapshot) => {
-                concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderAllConcurrentsView();
-                populateConcurrentsDatalist();
-                 populateCompetitorsForAccessForm();
-            });
-            
-            onSnapshot(chronoDocRef, (snapshot) => {
-                const chronoData = snapshot.data();
-                clearInterval(chronoInterval);
-
-                if (!chronoData) {
-                    setDoc(chronoDocRef, { 
-                        running: false, 
-                        startTime: null, 
-                        currentConcurrent: null, 
-                        selectedConcurrent: null, 
-                        currentManche: 1,
-                        lastRecordedTime: null
-                    });
-                    return;
-                }
-
-                currentManche = chronoData.currentManche || 1;
-                renderRaceTable();
-                updateChronoButtons(chronoData);
-                
-                clearTimeout(modalTimeout);
-                if (chronoData.lastRecordedTime) {
-                    const recordedData = chronoData.lastRecordedTime;
-                    const rankDisplay = document.getElementById('time-confirm-rank');
-                    const ecartPremierDisplay = document.getElementById('time-confirm-ecart-premier');
-                    const ecartPrecedentDisplay = document.getElementById('time-confirm-ecart-precedent');
-                    const newRecordBanner = document.getElementById('new-record-banner');
-                    
-                    document.getElementById('time-confirm-concurrent').textContent = recordedData.nom;
-                    document.getElementById('time-confirm-time').textContent = formatTime(recordedData.time);
-                    
-                    // Rank
-                    if (recordedData.rank) {
-                        let suffix = recordedData.rank === 1 ? 'er' : 'ème';
-                        rankDisplay.textContent = `Classement : ${recordedData.rank}${suffix}`;
-                    } else {
-                        rankDisplay.textContent = "Pas encore classé";
-                    }
-
-                    // Ecart Premier
-                    if (recordedData.rank > 1 && recordedData.ecartPremier) {
-                        ecartPremierDisplay.textContent = `À ${formatEcart(recordedData.ecartPremier)} du 1er`;
-                        ecartPremierDisplay.style.display = 'block';
-                    } else {
-                        ecartPremierDisplay.style.display = 'none';
-                    }
-
-                    // Ecart Precedent
-                    if (recordedData.rank > 1 && recordedData.ecartPrecedent && recordedData.nomPrecedent) {
-                        ecartPrecedentDisplay.textContent = `À ${formatEcart(recordedData.ecartPrecedent)} de ${recordedData.nomPrecedent}`;
-                        ecartPrecedentDisplay.style.display = 'block';
-                    } else if (recordedData.rank === 1) {
-                        ecartPrecedentDisplay.textContent = "Vous êtes le 1er !";
-                        ecartPrecedentDisplay.style.display = 'block';
-                    } else {
-                        ecartPrecedentDisplay.style.display = 'none';
-                    }
-
-                    // New record
-                    if (recordedData.isNewBestRunEver) {
-                        newRecordBanner.style.display = 'block';
-                    } else {
-                        newRecordBanner.style.display = 'none';
-                    }
-
-                    timeConfirmationModal.style.display = 'flex';
-                    
-                    modalTimeout = setTimeout(() => {
-                        clearDbLastRecordedTime();
-                    }, 10000);
+                if (manche === 1) {
+                    gridTitle.textContent = 'Grille de Départ - Manche 1 (Aléatoire)';
+                    concurrentsForGrid.sort(() => Math.random() - 0.5);
                 } else {
-                    timeConfirmationModal.style.display = 'none';
+                    gridTitle.textContent = `Grille de Départ - Manche ${manche <= 2 ? 'Test ' + manche : 'Course ' + (manche - 2)}`;
+                    concurrentsForGrid.sort((a, b) => {
+                        const aTime = a.manches[manche - 2]?.time;
+                        const bTime = b.manches[manche - 2]?.time;
+                        if (aTime === null || typeof aTime === 'undefined') return 1;
+                        if (bTime === null || typeof bTime === 'undefined') return -1;
+                        return aTime - bTime;
+                    });
                 }
-
-                if (chronoData.running && chronoData.startTime && chronoData.currentConcurrent) {
-                    const startTime = chronoData.startTime;
-                    chronoInterval = setInterval(() => updateChronoDisplay(startTime), 10);
-                    
-                    const runningConcurrent = concurrents.find(c => c.id == chronoData.currentConcurrent);
-                    if (runningConcurrent) {
-                        selectedConcurrentDisplay.textContent = `Course : ${runningConcurrent.nom}`;
-                    }
-                    
-                    chronoSearchInput.value = '';
-                    chronoSearchInput.disabled = true;
-                } else {
-                    chronoDisplay.textContent = "00:00:00";
-                    chronoSearchInput.disabled = false;
-
-                    if (chronoData.selectedConcurrent) {
-                        const selected = concurrents.find(c => c.id == chronoData.selectedConcurrent);
-                        if (selected) {
-                            selectedConcurrentDisplay.textContent = `Au départ : ${selected.nom}`;
-                            if(document.activeElement !== chronoSearchInput) {
-                                 chronoSearchInput.value = selected.nom;
-                            }
-                        }
-                    } else {
-                        selectedConcurrentDisplay.textContent = '';
-                         if(document.activeElement !== chronoSearchInput) {
-                            chronoSearchInput.value = '';
-                         }
-                    }
-                }
-            });
-
-
-            if (isSuperAdmin) {
-                onSnapshot(collection(db, `artifacts/${appId}/public/data/users`), (snapshot) => {
-                    utilisateursAutorises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderAccessTable();
-                });
+                
+                gridTable.innerHTML = `
+                    <thead class="bg-gray-200 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-bold uppercase">Ordre Départ</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold uppercase">Concurrent</th>
+                        </tr>
+                    </thead>
+                    <tbody id="grid-table-body" class="bg-white divide-y divide-gray-200">
+                    ${concurrentsForGrid.map((c, i) => `
+                        <tr>
+                            <td class="px-4 py-3 text-sm font-bold">${i + 1}</td>
+                            <td class="px-4 py-3 text-sm">${c.nom} ${c.isChild ? '🧒' : ''}</td>
+                        </tr>
+                    `).join('')}
+                    </tbody>
+                `;
+                gridScreen.style.display = 'flex';
             }
-            setupPermissions();
-        }
-        document.addEventListener('DOMContentLoaded', authenticateAndStart);
 
-        // ===================================
-        // NOUVELLE LOGIQUE POUR LA VUE CONCURRENT
-        // ===================================
-        function startCompetitorLogic(competitorId) {
-            const concurrentsCollection = collection(db, `artifacts/${appId}/public/data/concurrents`);
-            const chronoDocRef = doc(db, `artifacts/${appId}/public/data/raceState`, 'chrono');
-
-            let lastRenderedState = '';
-
-            onSnapshot(concurrentsCollection, (concurrentsSnapshot) => {
-                 onSnapshot(chronoDocRef, (chronoSnapshot) => {
-                    const allConcurrents = concurrentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    const chronoData = chronoSnapshot.exists() ? chronoSnapshot.data() : { currentManche: 1 };
-                    
-                    const currentState = JSON.stringify(allConcurrents) + JSON.stringify(chronoData);
-                    if (currentState !== lastRenderedState) {
-                         renderCompetitorDashboard(allConcurrents, chronoData, competitorId);
-                         lastRenderedState = currentState;
-                    }
-                });
-            });
-        }
-        
-        function renderCompetitorDashboard(allConcurrents, chronoData, currentCompetitorId) {
-            const me = allConcurrents.find(c => c.id === currentCompetitorId);
-            if (!me) {
-                document.getElementById('competitor-dashboard-name').textContent = "Concurrent non trouvé";
-                return;
-            }
+            currentHeatBtn.addEventListener('click', () => renderGrid(currentManche));
+            previousHeatBtn.addEventListener('click', () => { if(currentManche > 1) renderGrid(currentManche - 1); });
+            closeGridBtn.addEventListener('click', () => { gridScreen.style.display = 'none'; });
             
-            // Calcul des temps et classements
-            allConcurrents.forEach(c => {
-                const officialRuns = c.manches.slice(2).filter(t => t !== null && t !== undefined);
-                c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
-            });
-            const rankedConcurrents = allConcurrents.filter(c => c.meilleurTemps !== null).sort((a, b) => a.meilleurTemps - b.meilleurTemps);
-            const myRankIndex = rankedConcurrents.findIndex(c => c.id === currentCompetitorId);
-            const myRank = myRankIndex !== -1 ? myRankIndex + 1 : null;
-            const leader = rankedConcurrents.length > 0 ? rankedConcurrents[0] : null;
+            podiumFastestLapBtn.addEventListener('click', () => showDisplayScreen('podium-speed'));
+            podiumGrandPrixBtn.addEventListener('click', () => showDisplayScreen('podium-gp'));
 
-            // Mise à jour des cartes principales
-            document.getElementById('competitor-dashboard-name').textContent = me.nom;
-            document.getElementById('competitor-dashboard-best-time').textContent = formatTime(me.meilleurTemps) || '-';
-            document.getElementById('competitor-dashboard-rank').textContent = myRank || '-';
-
-            if (myRank && leader && me.meilleurTemps && myRank > 1) {
-                const gap = me.meilleurTemps - leader.meilleurTemps;
-                document.getElementById('competitor-dashboard-gap').textContent = formatEcart(gap);
-            } else if (myRank === 1) {
-                 document.getElementById('competitor-dashboard-gap').textContent = '1er';
-            } else {
-                document.getElementById('competitor-dashboard-gap').textContent = '-';
-            }
-
-            // Mise à jour du classement ciblé
-            const focusedRankingBody = document.getElementById('competitor-dashboard-focused-ranking');
-            focusedRankingBody.innerHTML = '';
-            
-            const competitorAbove = myRankIndex > 0 ? rankedConcurrents[myRankIndex - 1] : null;
-            const competitorBelow = myRankIndex < rankedConcurrents.length - 1 ? rankedConcurrents[myRankIndex + 1] : null;
-
-            const renderRankingRow = (competitor, rank, highlightClass = '') => {
-                if (!competitor) return '';
-                let rankDisplay = rank;
-                if (rank === 1) rankDisplay = `🥇 ${rank}`;
-                else if (rank === 2) rankDisplay = `🥈 ${rank}`;
-                else if (rank === 3) rankDisplay = `🥉 ${rank}`;
-                return `<tr class="${highlightClass}">
-                            <td class="p-3 font-bold">${rankDisplay}</td>
-                            <td class="p-3">${competitor.nom}</td>
-                            <td class="p-3 font-mono font-semibold">${formatTime(competitor.meilleurTemps)}</td>
-                        </tr>`;
+            // =========================
+            // NAVIGATION & UI
+            // =========================
+            const tabs = {
+                'tab-race': 'content-race', 'tab-radar': 'content-radar', 'tab-podium': 'content-podium', 'tab-display': 'content-display', 'tab-concurrents': 'content-concurrents', 'tab-dashboard': 'content-dashboard', 'tab-admin': 'content-admin'
             };
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+                    document.getElementById(tabs[button.id]).style.display = 'block';
+                });
+            });
 
-            if (myRank) {
-                if (competitorAbove) {
-                    focusedRankingBody.innerHTML += renderRankingRow(competitorAbove, myRank - 1, 'bg-gray-50');
-                }
-                focusedRankingBody.innerHTML += renderRankingRow(me, myRank, 'bg-blue-100 text-blue-800 font-bold');
-                if (competitorBelow) {
-                    focusedRankingBody.innerHTML += renderRankingRow(competitorBelow, myRank + 1, 'bg-gray-50');
-                }
-            } else {
-                 focusedRankingBody.innerHTML = '<tr><td colspan="3" class="p-3 text-center text-gray-500">Vous n\'avez pas encore de temps de course officiel.</td></tr>';
-            }
+            document.querySelectorAll('.credits-btn-trigger').forEach(btn => {
+                btn.addEventListener('click', () => { creditsModal.style.display = 'flex' });
+            });
+            closeCreditsModalBtn.addEventListener('click', () => { creditsModal.style.display = 'none' });
 
-            // Mise à jour du tableau des temps par manche
+            closeTimeConfirmModalBtn.addEventListener('click', () => timeConfirmationModal.style.display = 'none');
+
+            document.getElementById('show-access-btn').addEventListener('click', (e) => {
+                document.querySelectorAll('.admin-sub-tab-button').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                document.getElementById('admin-access-section').style.display = 'block';
+                document.getElementById('admin-reset-section').style.display = 'none';
+            });
+            document.getElementById('show-reset-btn').addEventListener('click', (e) => {
+                document.querySelectorAll('.admin-sub-tab-button').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                document.getElementById('admin-access-section').style.display = 'none';
+                document.getElementById('admin-reset-section').style.display = 'block';
+            });
+        }
+
+        // =========================
+        // Démarrage de la logique spécifique au concurrent
+        // =========================
+        function startCompetitorLogic(myId) {
+            const chronoDocRef = doc(db, `artifacts/${appId}/public/data/raceState`, 'chrono');
+            const concurrentsCollection = collection(db, `artifacts/${appId}/public/data/concurrents`);
+
+            onSnapshot(concurrentsCollection, (snapshot) => {
+                const concurrents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Listen to chrono changes as well
+                onSnapshot(chronoDocRef, (chronoDoc) => {
+                    const chronoData = chronoDoc.data();
+                    renderCompetitorDashboard(myId, concurrents, chronoData);
+                });
+            });
+        }
+
+        function renderCompetitorDashboard(myId, allConcurrents, chronoData) {
+            const me = allConcurrents.find(c => c.id === myId);
+            if (!me) return;
+            
+            // Re-select elements inside the function to ensure they exist
+            const nameEl = document.getElementById('competitor-dashboard-name');
+            const bestTimeEl = document.getElementById('competitor-dashboard-best-time');
+            const rankEl = document.getElementById('competitor-dashboard-rank');
+            const gapEl = document.getElementById('competitor-dashboard-gap');
+            const rankingBody = document.getElementById('competitor-dashboard-focused-ranking');
             const timesTableHead = document.getElementById('competitor-dashboard-times-head');
             const timesTableBody = document.getElementById('competitor-dashboard-times-body');
             
+            // Defensive check
+            if (!nameEl || !bestTimeEl || !rankEl || !gapEl || !rankingBody || !timesTableHead || !timesTableBody) {
+                console.error("One or more competitor dashboard elements are missing from the DOM.");
+                return;
+            }
+
+            allConcurrents.forEach(c => {
+                const officialRuns = c.manches.slice(2).filter(m => m && m.time !== null).map(m => m.time);
+                c.meilleurTemps = officialRuns.length > 0 ? Math.min(...officialRuns) : null;
+            });
+
+            const ranked = allConcurrents.filter(c => c.meilleurTemps !== null).sort((a, b) => a.meilleurTemps - b.meilleurTemps);
+            const myRankIndex = ranked.findIndex(c => c.id === myId);
+            const myRank = myRankIndex !== -1 ? myRankIndex + 1 : "-";
+            const tempsPremier = ranked.length > 0 ? ranked[0].meilleurTemps : null;
+            const myGap = (tempsPremier !== null && me.meilleurTemps !== null && myRank !== 1) ? me.meilleurTemps - tempsPremier : null;
+
+            nameEl.textContent = me.nom;
+            bestTimeEl.textContent = formatTime(me.meilleurTemps);
+            rankEl.textContent = myRank;
+            gapEl.textContent = formatEcart(myGap);
+            
+            rankingBody.innerHTML = '';
+            const start = Math.max(0, myRankIndex - 1);
+            const end = Math.min(ranked.length, myRankIndex + 2);
+            for (let i = start; i < end; i++) {
+                const c = ranked[i];
+                const row = document.createElement('tr');
+                row.className = c.id === myId ? 'bg-blue-100 font-bold' : '';
+                row.innerHTML = `
+                    <td class="p-3">${i + 1}</td>
+                    <td class="p-3">${c.nom}</td>
+                    <td class="p-3 font-mono">${formatTime(c.meilleurTemps)}</td>
+                `;
+                rankingBody.appendChild(row);
+            }
+
             const mancheHeaders = Array.from({ length: chronoData.currentManche }, (_, i) => i < 2 ? `Test ${i + 1}` : `Course ${i - 1}`);
             timesTableHead.innerHTML = mancheHeaders.map(h => `<th class="p-3 text-left text-xs font-bold uppercase">${h}</th>`).join('');
             
             const timesRow = document.createElement('tr');
-            timesRow.innerHTML = me.manches.slice(0, chronoData.currentManche).map(time => `<td class="p-3 font-mono">${formatTime(time) || '-'}</td>`).join('');
+            timesRow.innerHTML = me.manches.slice(0, chronoData.currentManche).map(manche => {
+                const timeDisplay = manche ? formatTime(manche.time) : '-';
+                const speedDisplay = manche && manche.speed ? `<span class="block text-xs text-gray-500 font-normal">${manche.speed} km/h</span>` : '';
+                return `<td class="p-3 font-mono">${timeDisplay}${speedDisplay}</td>`;
+            }).join('');
             timesTableBody.innerHTML = '';
             timesTableBody.appendChild(timesRow);
         }
 
         function showTutorialModalIfNeeded() {
-            if (!localStorage.getItem('tutorialShown')) {
-                document.getElementById('tutorial-modal').style.display = 'flex';
+            const tutorialShown = localStorage.getItem('tutorialShown');
+            if (!tutorialShown) {
+                const modal = document.getElementById('tutorial-modal');
+                modal.style.display = 'flex';
+
+                document.getElementById('show-tutorial-btn').onclick = () => {
+                    modal.style.display = 'none';
+                    displayTutorialForRole(currentUser.role);
+                    localStorage.setItem('tutorialShown', 'true');
+                };
+                document.getElementById('close-tutorial-btn').onclick = () => {
+                    modal.style.display = 'none';
+                    localStorage.setItem('tutorialShown', 'true');
+                };
             }
         }
 
-        document.getElementById('close-tutorial-btn').addEventListener('click', () => {
-            document.getElementById('tutorial-modal').style.display = 'none';
-            localStorage.setItem('tutorialShown', 'true');
-        });
-
-        document.getElementById('show-tutorial-btn').addEventListener('click', () => {
-            displayTutorialForRole(isSuperAdmin ? 'Super Admin' : currentUser.role);
-            document.getElementById('tutorial-modal').style.display = 'none';
-            localStorage.setItem('tutorialShown', 'true');
-        });
-
         function displayTutorialForRole(role) {
-            let tutorialContent = '';
-            let tutorialTitle = 'Guide Rapide';
-
-             const commonStyles = `
-                body { font-family: sans-serif; line-height: 1.6; padding: 20px; color: #333; }
-                h1, h2, h3 { color: #1e40af; }
-                h2 { border-bottom: 2px solid #3b82f6; padding-bottom: 5px; margin-top: 25px; }
-                h3 { border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 20px; }
-                p, li { font-size: 15px; }
-                strong { color: #1f2937; }
-                ul { padding-left: 20px; list-style-type: '✔️ '; }
-                img { border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; max-width: 100%; height: auto; }
-                .note { background-color: #fef9c3; border-left: 4px solid #facc15; padding: 10px; margin: 15px 0; border-radius: 4px;}
-            `;
-
-            switch (role) {
+            let title = "Tutoriel";
+            let content = `<div class="text-left space-y-3">`;
+            
+            switch(role) {
                 case 'Super Admin':
                 case 'Organisation':
-                    tutorialTitle = "Guide Complet pour l'Organisation";
-                    tutorialContent = `
-                        <p>Bienvenue ! En tant qu'organisateur, vous avez accès à toutes les fonctionnalités clés pour gérer l'événement.</p>
-                        
-                        <h2>🏎️ Onglet Chrono</h2>
-                        <p>C'est le centre de contrôle de la course.</p>
-                        <img src="https://i.imgur.com/gA8F2oI.png" alt="Vue de l'onglet Chrono">
-                        <ul>
-                            <li><strong>Lancer une course :</strong> Recherchez un concurrent par nom ou numéro, sélectionnez-le dans la liste, puis cliquez sur "Démarrer".</li>
-                            <li><strong>Arrêter une course :</strong> Dès que le concurrent passe la ligne d'arrivée, cliquez sur "Arrêter et Enregistrer". Le temps sera sauvegardé.</li>
-                            <li><strong>Manche suivante :</strong> Une fois tous les concurrents passés, cliquez sur "Manche Suivante" pour faire avancer la course.</li>
-                            <li><strong>Correction manuelle :</strong> En cas d'erreur, vous pouvez cliquer directement sur un temps dans le tableau pour le modifier.</li>
+                    title = "Guide pour l'Organisation";
+                    content += `
+                        <p>En tant qu'<strong>Organisateur</strong>, vous avez accès à toutes les fonctionnalités :</p>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li><strong>Chrono :</strong> Gérez le départ et l'arrivée, enregistrez les temps et passez aux manches suivantes.</li>
+                            <li><strong>Radar :</strong> Saisissez la vitesse d'un concurrent en piste.</li>
+                            <li><strong>Concurrents :</strong> Affichez la liste des concurrents, modifiez leurs informations et validez les documents.</li>
+                            <li><strong>Bénévoles :</strong> Gérez la liste des bénévoles, leurs affectations et le matériel distribué.</li>
+                            <li><strong>Administration :</strong> (Super Admin uniquement) Gérez les accès à l'application et effectuez des réinitialisations de données.</li>
                         </ul>
-
-                        <h2>🙋 Onglet Concurrents</h2>
-                        <p>Gérez la liste de tous les participants.</p>
-                        <img src="https://i.imgur.com/s4a2r7p.png" alt="Tableau des concurrents">
-                        <ul>
-                            <li><strong>Ajouter :</strong> Utilisez le bouton "+ Ajouter un Concurrent".</li>
-                            <li><strong>Modifier/Supprimer :</strong> Utilisez les boutons d'action sur chaque ligne.</li>
-                            <li><strong>Suivi des dossiers :</strong> Cochez les cases pour suivre les documents (inscription, assurance, paiement) et le contrôle technique.</li>
-                        </ul>
-
-                        <h2>🤝 Onglet Bénévoles & Matériel</h2>
-                        <p>Gérez vos équipes et le matériel qui leur est confié.</p>
-                        <img src="https://i.imgur.com/G5g2f0b.png" alt="Tableau des bénévoles">
-                        <ul>
-                            <li><strong>Ajouter/Modifier :</strong> Comme pour les concurrents, utilisez les boutons pour gérer la liste.</li>
-                            <li><strong>Affectations :</strong> Attribuez un lieu et une fonction à chaque bénévole via les menus déroulants.</li>
-                            <li><strong>Suivi du matériel :</strong> Cochez les cases "D" (Distribué) et "R" (Restitué) pour les radios et sifflets. Le résumé en haut se met à jour automatiquement.</li>
-                        </ul>
-                        
-                        ${isSuperAdmin ? `
-                        <h2>⚙️ Onglet Administration</h2>
-                        <p class="note"><strong>Attention :</strong> Cet onglet est réservé aux Super Administrateurs. Les actions ici sont puissantes.</p>
-                        <img src="https://i.imgur.com/8Qp2f8j.png" alt="Zone d'Administration">
-                        <ul>
-                            <li><strong>Gestion des Accès :</strong> Créez, modifiez ou supprimez les comptes utilisateurs qui peuvent se connecter à l'application.</li>
-                            <li><strong>Réinitialisation :</strong> Effacez de manière permanente les données (bénévoles, concurrents, accès). <strong>Votre propre accès est toujours conservé.</strong></li>
-                        </ul>
-                        ` : ''}
-                    `;
-                    break;
-                case 'Responsable Radio':
-                    tutorialTitle = "Guide pour le Responsable Radio";
-                    tutorialContent = `
-                        <h2>Votre Mission : Suivre le Matériel</h2>
-                        <p>Votre rôle est de vous assurer que tout le matériel (radios, sifflets) est bien distribué en début de journée et restitué à la fin.</p>
-                        <img src="https://i.imgur.com/G5g2f0b.png" alt="Tableau Bénévoles avec focus Matériel">
-                        <ul>
-                            <li><strong>Distribution :</strong> Lorsqu'un bénévole prend son matériel, cochez la case "D" (Distribué) correspondante sur sa ligne.</li>
-                            <li><strong>Récupération :</strong> Lorsqu'il le rend, cochez la case "R" (Restitué).</li>
-                        </ul>
-                        <p>Le résumé en haut de la page vous indique en temps réel combien d'appareils sont encore en circulation. Les autres colonnes sont en lecture seule pour vous.</p>
+                        <p class="font-semibold mt-4">N'oubliez pas de sauvegarder après chaque modification dans les tableaux !</p>
                     `;
                     break;
                 case 'Chrono Départ':
+                     title = "Guide pour le Chrono Départ";
+                     content += `
+                        <p>Votre rôle est crucial pour le bon déroulement de la course :</p>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li><strong>Onglet Chrono :</strong> C'est votre principal outil.</li>
+                            <li><strong>Sélection du concurrent :</strong> Avant le départ, tapez le nom du concurrent dans la barre de recherche et sélectionnez-le. Son nom doit s'afficher en dessous.</li>
+                            <li><strong>Bouton Démarrer :</strong> Une fois le concurrent prêt et sélectionné, cliquez sur <strong>Démarrer</strong>. Le bouton deviendra inaccessible et le chronomètre se lancera pour tout le monde.</li>
+                            <li>Le pôle <strong>Chrono Arrivée</strong> prendra le relais pour arrêter le temps.</li>
+                        </ul>
+                    `;
+                    break;
                 case 'Chrono Arrivée':
-                    tutorialTitle = "Guide pour l'Équipe Chrono";
-                    tutorialContent = `
-                        <p>Votre rôle est crucial ! Votre concentration se portera sur l'onglet <strong>Chrono</strong>.</p>
-                        <img src="https://i.imgur.com/gA8F2oI.png" alt="Vue détaillée du Chronomètre">
-                        
-                        <h3>Pour le Départ 🏁</h3>
-                        <ul>
-                            <li><strong>1. Recherchez le concurrent :</strong> Tapez son numéro ou son nom dans la barre de recherche.</li>
-                            <li><strong>2. Sélectionnez-le :</strong> Cliquez sur son nom dans la liste qui apparaît. Son nom s'affiche en dessous pour confirmer.</li>
-                            <li><strong>3. LANCEZ !</strong> Au moment exact où la caisse à savon s'élance, cliquez sur le bouton vert "Démarrer".</li>
+                    title = "Guide pour le Chrono Arrivée";
+                    content += `
+                        <p>Votre rôle est de finaliser chaque course :</p>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li><strong>Onglet Chrono :</strong> Surveillez cet onglet.</li>
+                            <li><strong>Chronomètre en cours :</strong> Quand un concurrent est en piste, le chronomètre tourne. Le bouton <strong>Arrêter</strong> est alors accessible pour vous.</li>
+                            <li><strong>Ligne d'arrivée :</strong> Dès que la caisse à savon franchit la ligne, cliquez sur <strong>Arrêter et Enregistrer</strong>.</li>
+                            <li>Une fenêtre de confirmation s'affichera avec le temps, le classement et les écarts. Le temps est automatiquement sauvegardé pour tout le monde.</li>
                         </ul>
-
-                        <h3>Pour l'Arrivée ✅</h3>
-                        <ul>
-                            <li><strong>1. Suivez le temps :</strong> Le chronomètre pour le concurrent en piste défile en temps réel sur votre écran.</li>
-                            <li><strong>2. ARRETEZ !</strong> Dès que la caisse franchit la ligne, cliquez sur le bouton rouge "Arrêter et Enregistrer".</li>
-                            <li><strong>3. Confirmez :</strong> Une fenêtre s'ouvrira avec le temps final. C'est votre confirmation que tout est bien enregistré.</li>
-                        </ul>
-                        <p class="note">En cas d'erreur, un organisateur peut corriger un temps manuellement en cliquant dessus dans le tableau.</p>
                     `;
                     break;
-                default: // Bénévole & Concurrent & MAIRE
-                    tutorialTitle = "Guide de Consultation";
-                    tutorialContent = `
-                        <p>Bienvenue ! Vous avez un accès en consultation pour suivre l'événement en direct.</p>
-                        
-                        <h2>Suivre la Course 🏎️</h2>
-                        <p>L'onglet <strong>Chrono</strong> est votre principal point d'intérêt. Vous y verrez :</p>
-                        <img src="https://i.imgur.com/gA8F2oI.png" alt="Tableau de classement">
-                        <ul>
-                            <li>Le chronomètre en direct pour le concurrent actuellement sur la piste.</li>
-                            <li>Le classement général qui se met à jour automatiquement après chaque descente.</li>
-                            <li>Les temps de toutes les manches pour chaque participant.</li>
+                case 'Saisie Radar':
+                    title = "Guide pour la Saisie Radar";
+                    content += `
+                        <p>Votre mission est de mesurer la vitesse de pointe :</p>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li><strong>Onglet Radar :</strong> Allez sur cet onglet.</li>
+                            <li><strong>Concurrent en piste :</strong> Le nom du concurrent en course s'affiche en haut.</li>
+                            <li><strong>Saisie :</strong> Dès que vous avez la vitesse sur votre appareil, tapez-la dans le champ numérique.</li>
+                            <li><strong>Enregistrer :</strong> Cliquez sur <strong>Enregistrer Vitesse</strong>. La vitesse sera automatiquement associée à la descente en cours du concurrent.</li>
                         </ul>
-
-                        <h2>Voir les Bénévoles 🤝</h2>
-                        <p>Dans l'onglet <strong>Bénévoles & Matériel</strong>, vous pouvez consulter la liste des volontaires et leurs affectations.</p>
                     `;
                     break;
+                default:
+                    content += "<p>Votre rôle vous donne un accès en lecture seule à la plupart des informations de la course. Vous pouvez suivre les temps en direct et consulter les classements.</p>";
             }
-
-            const newWindow = window.open('', '_blank');
-            newWindow.document.write(`
-                <html>
-                    <head>
-                        <title>${tutorialTitle}</title>
-                        <style>${commonStyles}</style>
-                    </head>
-                    <body>
-                        <h1>${tutorialTitle}</h1>
-                        ${tutorialContent}
-                    </body>
-                </html>
-            `);
-            newWindow.document.close();
+            
+            content += "</div>";
+            showConfirmationModal(content, () => {}, title);
         }
+
+        // --- Démarrage de l'application ---
+        authenticateAndStart();
 
     </script>
 </body>
 </html>
+
+
+
+
+
+
 
